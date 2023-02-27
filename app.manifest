@@ -46,7 +46,7 @@
     "_standalone",
     "_distributed"
   ],
-  "targetWorkloads": null
+  "targetWorkloads": null,
   "dependencies": {
      "SA-Spamhaus-datasets": {
          "version": ">=1.0.2",
