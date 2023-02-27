@@ -1,0 +1,185 @@
+<form version="1.1">
+  <label>Mailbox Authentication by name</label>
+  <search id="base">
+    <query>index=mailbox (process=mailbox OR process=audit) module=ZxAuth operation=authentication-service login=* service=$service$ auth_name=$name$ | fields _time login src_ip auth_name user_agent service error</query>
+    <earliest>$interval.earliest$</earliest>
+    <latest>$interval.latest$</latest>
+    <sampleRatio>1</sampleRatio>
+  </search>
+  <fieldset submitButton="false">
+    <input type="text" token="name">
+      <label>Account name</label>
+    </input>
+    <input type="dropdown" token="service">
+      <label>Service</label>
+      <fieldForLabel>service</fieldForLabel>
+      <fieldForValue>service</fieldForValue>
+      <search>
+        <query>index=mailbox (process=mailbox OR process=audit) module=ZxAuth operation=authentication-service service=* | fields service | dedup service</query>
+        <earliest>-4h@m</earliest>
+        <latest>now</latest>
+      </search>
+      <choice value="*">ALL</choice>
+      <change>
+        <unset token="by"></unset>
+        <unset token="failby"></unset>
+      </change>
+    </input>
+    <input type="time" token="interval">
+      <label>Interval</label>
+      <default>
+        <earliest>-24h@h</earliest>
+        <latest>now</latest>
+      </default>
+    </input>
+    <input type="radio" token="details">
+      <label>Details</label>
+      <choice value="true">add time details</choice>
+      <choice value="false">no time details</choice>
+      <default>false</default>
+      <change>
+        <eval token="show_details">if(value=="false",null(),true())</eval>
+        <unset token="by"></unset>
+        <unset token="failby"></unset>
+        <unset token="authname"></unset>
+      </change>
+    </input>
+  </fieldset>
+  <row depends="$name$,$service$">
+    <panel>
+      <table depends="$LS_show$">
+        <title>Successful login</title>
+        <search base="base">
+          <query>where login=="successful" | stats count by src_ip auth_name user_agent service | sort - count</query>
+          <progress>
+            <set token="LS_show">true</set>
+          </progress>
+          <done>
+            <eval token="LS_show">if ('job.resultCount' &gt; 0, true(), null())</eval>
+          </done>
+        </search>
+        <option name="count">20</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">cell</option>
+        <option name="percentagesRow">false</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="rowNumbers">false</option>
+        <option name="totalsRow">false</option>
+        <option name="wrap">true</option>
+        <drilldown>
+          <condition field="count">
+            <unset token="by"></unset>
+            <unset token="failby"></unset>
+            <unset token="authname"></unset>
+          </condition>
+          <condition>
+            <set token="by">$click.name2$</set>
+            <set token="byvalue">$click.value2$</set>
+            <set token="authname">$row.auth_name$</set>
+            <unset token="failby"></unset>
+          </condition>
+        </drilldown>
+      </table>
+      <html rejects="$LS_show$">
+        <p>No successful login during this time interval.</p>
+      </html>
+    </panel>
+  </row>
+  <row depends="$name$,$service$">
+    <panel>
+      <table depends="$LF_show$">
+        <title>Login failed</title>
+        <search base="base">
+          <query>where login=="failed" | stats count by src_ip auth_name service error | sort - count</query>
+          <progress>
+            <set token="LF_show">true</set>
+          </progress>
+          <done>
+            <eval token="LF_show">if ('job.resultCount' &gt; 0, true(), null())</eval>
+          </done>
+        </search>
+        <option name="count">20</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">cell</option>
+        <option name="percentagesRow">false</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="rowNumbers">false</option>
+        <option name="totalsRow">false</option>
+        <option name="wrap">true</option>
+        <drilldown>
+          <condition field="count">
+            <unset token="failby"></unset>
+            <unset token="by"></unset>
+            <unset token="authname"></unset>
+          </condition>
+          <condition>
+            <set token="failby">$click.name2$</set>
+            <set token="byvalue">$click.value2$</set>
+            <set token="authname">$row.auth_name$</set>
+            <unset token="by"></unset>
+          </condition>
+        </drilldown>
+      </table>
+      <html rejects="$LF_show$">
+        <p>No failed login during this time interval.</p>
+      </html>
+    </panel>
+  </row>
+  <row>
+    <panel depends="$by$">
+      <title>Successful Logins  $by$=&lt;$byvalue$&gt; - only for external IPs</title>
+      <map>
+        <title>Authenticated user: $authname$</title>
+        <search base="base">
+          <query>search $by$="$byvalue$" auth_name=$authname$ | stats count by src_ip auth_name user_agent service | iplocation lang=en src_ip | geostats globallimit=1000  sum(count) as count by service</query>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="height">700</option>
+        <option name="mapping.map.center">(38.65,8.26)</option>
+        <option name="mapping.map.zoom">5</option>
+        <option name="mapping.markerLayer.markerOpacity">0.8</option>
+        <option name="mapping.tileLayer.maxZoom">19</option>
+        <option name="mapping.tileLayer.url">http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png</option>
+        <option name="mapping.type">marker</option>
+      </map>
+    </panel>
+    <panel depends="$failby$">
+      <title>Failed Logins  $failby$=&lt;$byvalue$&gt;  - only for external IPs</title>
+      <map>
+        <title>Auth name: $authname$</title>
+        <search base="base">
+          <query>search $failby$="$byvalue$" auth_name=$authname$ | stats count by src_ip auth_name service error | iplocation lang=en src_ip | geostats globallimit=1000  sum(count) as count by service</query>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="height">700</option>
+        <option name="mapping.map.center">(43.99,5.64)</option>
+        <option name="mapping.map.zoom">6</option>
+        <option name="mapping.tileLayer.maxZoom">19</option>
+        <option name="mapping.tileLayer.url">http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png</option>
+        <option name="mapping.type">marker</option>
+      </map>
+    </panel>
+  </row>
+  <row depends="$show_details$" rejects="$by$, $failby$">
+    <panel>
+      <table depends="$LS_show$">
+        <title>Details on successful logins</title>
+        <search base="base">
+          <query>where login="successful" | table _time src_ip auth_name service user_agent</query>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </table>
+    </panel>
+    <panel>
+      <table depends="$LF_show$">
+        <title>Details on failed logins</title>
+        <search base="base">
+          <query>where login=="failed" | table _time src_ip auth_name service error</query>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </table>
+    </panel>
+  </row>
+</form>

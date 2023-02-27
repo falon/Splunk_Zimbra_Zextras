@@ -1,0 +1,20 @@
+<nav search_view="search">
+  <view name="control_room" default="true" />
+  <view name="search" />
+  <collection label="Dashboards">
+        <collection label="MTA">
+                <view source="unclassified" match="postfix_" />
+        </collection>
+        <collection label="Mailbox">
+                <view source="unclassified" match="mailbox_" />
+        </collection>
+  </collection>
+  <collection label="Reports">
+        <collection label="Summary">
+                <saved source="unclassified" match="Summary -" />
+        </collection>
+        <divider />
+	<saved source="unclassified" match="zimbra"/>
+  </collection>
+  <view name="alerts" />
+</nav>

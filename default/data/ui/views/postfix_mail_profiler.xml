@@ -1,0 +1,657 @@
+<!-- Splunk Email Profiler
+  Author: Marco Favero
+  Note:
+  This is an SMTP profiler based on Postfix log for authenticated users.
+  It works in conjunction with "Summary - Account stat - <flow> - Last 1h"
+  flow = "Outbound" for now.
+-->
+<form version="1.1">
+  <init>
+    <set token="index_base">1h</set>
+    <set token="flow">Outbound</set>
+    <unset token="wild"></unset>
+    <unset token="wildheadsearch"></unset>
+    <set token="noAccount">true</set>
+    <!-- <set token="howt">-1hour</set> -->
+  </init>
+  <label>Outbound sender profiler</label>
+  <description>Per account report of mail sent</description>
+  <search id="wildaccount_msg">
+    <query>
+      index="summary_email_$index_base$" flow=$flow$ src_user=$account$
+                | timechart span=$how$
+                  count(src_user) as "N. Msg last $how$" by src_user limit=$limit$ useother=f
+                | untable _time src_user "N. Msg last $how$"
+    </query>
+    <earliest>$interval.earliest$</earliest>
+    <latest>$interval.latest$</latest>
+  </search>
+  <search id="wildaccount_nrcpt">
+    <query>
+      index="summary_email_$index_base$" flow=$flow$ src_user=$account$
+                | timechart span=$how$
+                  sum(recipient_count) as "N. Recip. last $how$" by src_user limit=$limit$ useother=f
+                | untable _time src_user "N. Recip. last $how$"
+    </query>
+    <earliest>$interval.earliest$</earliest>
+    <latest>$interval.latest$</latest>
+  </search>
+  <search id="wildaccount_size">
+    <query>
+      index="summary_email_$index_base$" flow=outbound src_user=$account$
+                | timechart span=$how$
+                  sum(size) as "Size last $how$" by src_user limit=$limit$ useother=f
+                | untable _time src_user "Size last $how$"
+    </query>
+    <earliest>$interval.earliest$</earliest>
+    <latest>$interval.latest$</latest>
+  </search>
+  <search base="timeslot" id="tot">
+    <query>
+            stats
+              max(N. Msg last $how$) AS "MAX N. Msg per $how$"
+              avg(N. Msg last $how$) AS "MEAN N. Msg per $how$"
+              stdev(N. Msg last $how$) AS "STDEV N. Msg per $how$"
+              min(N. Msg last $how$) AS "MIN N. Msg per $how$"
+              max(N. Recip. last $how$) AS "MAX N. Recip. per $how$"
+              avg(N. Recip. last $how$) AS "MEAN N. Recip. per $how$"
+              stdev(N. Recip. last $how$) AS "STDEV N. Recip. per $how$"
+              min(N. Recip. last $how$) AS "MIN N. Recip. per $how$"
+              max(Size (MiB) last $how$) AS "MAX Size (MiB) per $how$"
+              avg(Size (MiB) last $how$) AS "MEAN Size (MiB) per $how$"
+              stdev(Size (MiB) last $how$) AS "STDEV Size (MiB) per $how$"
+              min(Size (MiB) last $how$) AS "MIN Size (MiB) per $how$"
+            | eval "MEAN N. Msg per $how$"=round('MEAN N. Msg per $how$',1)
+            | eval "STDEV N. Msg per $how$"=round('STDEV N. Msg per $how$',1)
+            | eval "MEAN N. Recip. per $how$"=round('MEAN N. Recip. per $how$',1)
+            | eval "STDEV N. Recip. per $how$"=round('STDEV N. Recip. per $how$',1)
+            | eval "MAX Size (MiB) per $how$"=round('MAX Size (MiB) per $how$'/1024/1024,1)
+            | eval "MEAN Size (MiB) per $how$"=round('MEAN Size (MiB) per $how$'/1024/1024,1)
+            | eval "STDEV Size (MiB) per $how$"=round('STDEV Size (MiB) per $how$'/1024/1024,1)
+            | eval "MIN Size (MiB) per $how$"=round('MIN Size (MiB) per $how$'/1024/1024,1)
+        </query>
+  </search>
+  <search id="timeslot">
+    <query>index="summary_email_$index_base$" flow=$flow$ src_user=$account$
+                | timechart span=$how$
+                  count(src_user) as "N. Msg last $how$"
+                  sum(recipient_count) as "N. Recip. last $how$"
+                  avg(recipient_count) as "Mean N. Recip. last $how$"
+                  sum(size) as "Size (MiB) last $how$"
+                  avg(size) as "Mean Size (KiB) last $how$"
+                | fillnull
+        </query>
+    <earliest>$interval.earliest$</earliest>
+    <latest>$interval.latest$</latest>
+  </search>
+  <fieldset submitButton="true" autoRun="false">
+    <input type="checkbox" token="forecast" searchWhenChanged="true">
+      <label>Global forecast and flow</label>
+      <choice value="true">forecast</choice>
+      <change>
+        <eval token="showForecast">if('forecast'=="true",true(),null())</eval>
+      </change>
+      <delimiter> </delimiter>
+    </input>
+    <input type="text" token="account" searchWhenChanged="true" rejects="$showForecast$">
+      <label>account</label>
+      <change>
+        <condition value="">
+          <set token="noAccount">true</set>
+          <unset token="wild"></unset>
+          <unset token="wildheadsearch"></unset>
+          <unset token="showuidsel"></unset>
+        </condition>
+        <condition match="like($value$,&quot;*&quot;)">
+          <set token="wild">true</set>
+          <set token="showuidsel">true</set>
+          <set token="form.limit">1</set>
+          <unset token="noAccount"></unset>
+        </condition>
+        <condition>
+          <unset token="wild"></unset>
+          <unset token="wildheadsearch"></unset>
+          <unset token="showuidsel"></unset>
+          <unset token="noAccount"></unset>
+        </condition>
+      </change>
+    </input>
+    <input type="dropdown" token="limit" searchWhenChanged="false" depends="$showuidsel$" rejects="$showForecast$">
+      <label>Number of uid to show:</label>
+      <choice value="1">1</choice>
+      <choice value="2">2</choice>
+      <choice value="3">3</choice>
+      <choice value="4">4</choice>
+      <choice value="5">5</choice>
+      <choice value="10">10</choice>
+      <choice value="100">100</choice>
+      <choice value="0">GLOBAL</choice>
+      <initialValue>1</initialValue>
+      <default>1</default>
+      <change>
+        <condition value="0">
+          <unset token="wild"></unset>
+          <set token="wildheadsearch"></set>
+        </condition>
+        <condition>
+          <set token="wild">true</set>
+          <set token="wildheadsearch">
+            <![CDATA[| head limit=$value$]]>
+          </set>
+        </condition>
+      </change>
+    </input>
+    <input type="dropdown" token="how" searchWhenChanged="false" rejects="$showForecast$">
+      <label>Sample time</label>
+      <choice value="1hour">hour</choice>
+      <choice value="1day">day</choice>
+      <choice value="1week">week</choice>
+      <choice value="1month">month</choice>
+      <default>1hour</default>
+      <initialValue>1hour</initialValue>
+      <change>
+        <condition value="1hour">
+          <set token="howt">-$how$</set>
+        </condition>
+        <condition match="match($how$,&quot;day$|week$|month$&quot;)">
+          <set token="howt">-$how$</set>
+        </condition>
+      </change>
+    </input>
+    <input type="radio" token="allitem" searchWhenChanged="true" rejects="$showForecast$">
+      <label>Summary</label>
+      <choice value="true">Sì</choice>
+      <choice value="false">No</choice>
+      <default>false</default>
+      <initialValue>false</initialValue>
+      <change>
+        <condition value="true">
+          <set token="showSummary">true</set>
+          <unset token="showTimeline"></unset>
+        </condition>
+        <condition value="false">
+          <unset token="showSummary"></unset>
+          <set token="showTimeline">true</set>
+        </condition>
+      </change>
+    </input>
+    <input type="time" token="interval" searchWhenChanged="false" rejects="$showForecast$">
+      <label>Time</label>
+      <default>
+        <earliest>-2d@d</earliest>
+        <latest>@d</latest>
+      </default>
+      <change>
+        <condition match="(relative_time(now(), $interval.latest$)-relative_time(now(), $interval.earliest$))/(now()-relative_time(now(), $howt$))&gt;1000">
+          <set token="notAllowed">true</set>
+        </condition>
+        <condition>
+          <unset token="notAllowed"></unset>
+        </condition>
+      </change>
+    </input>
+  </fieldset>
+  <row depends="$notAllowed$" rejects="$showForecast$">
+    <panel>
+      <html>
+      <p>Number of sample overflow. Please reduce it to maximum of 1000. For instance, 41 days for hour, 1000 days for days and so on!</p>
+    </html>
+    </panel>
+  </row>
+  <row depends="$noAccount$" rejects="$showForecast$">
+    <panel>
+      <html>
+      <p>Please, enter a sender name. You can use wildcard too.</p>
+    </html>
+    </panel>
+  </row>
+  <row depends="$wild$" rejects="$showForecast$">
+    <panel>
+      <html>
+      <p>This search use wildcards, pay attention! Look at the new "<b>Number of uid</b>" menu!</p>
+    </html>
+    </panel>
+  </row>
+  <row rejects="$notAllowed$,$showForecast$">
+    <panel depends="$showTimeline$" rejects="$noAccount$">
+      <title>Statistics for $account$</title>
+      <chart rejects="$wild$">
+        <title>Number of mail in $how$</title>
+        <search>
+          <query>index="summary_email_$index_base$"  flow=$flow$ src_user=$account$
+                    | timechart span=$how$
+                        sum(recipient_count) as "Recip. in $how$"
+                        count(src_user) as "Mail in $how$"
+                        eval(round(sum(size)/1024,1)) as "Size (KiB) in $how$"</query>
+          <earliest>$interval.earliest$</earliest>
+          <latest>$interval.latest$</latest>
+        </search>
+        <option name="charting.axisLabelsX.majorLabelStyle.overflowMode">ellipsisNone</option>
+        <option name="charting.axisLabelsX.majorLabelStyle.rotation">0</option>
+        <option name="charting.axisTitleX.text">ora del giorno</option>
+        <option name="charting.axisTitleX.visibility">visible</option>
+        <option name="charting.axisTitleY.visibility">visible</option>
+        <option name="charting.axisTitleY2.visibility">visible</option>
+        <option name="charting.axisX.abbreviation">none</option>
+        <option name="charting.axisX.scale">linear</option>
+        <option name="charting.axisY.abbreviation">none</option>
+        <option name="charting.axisY.scale">linear</option>
+        <option name="charting.axisY2.abbreviation">none</option>
+        <option name="charting.axisY2.enabled">1</option>
+        <option name="charting.axisY2.scale">inherit</option>
+        <option name="charting.chart">area</option>
+        <option name="charting.chart.bubbleMaximumSize">50</option>
+        <option name="charting.chart.bubbleMinimumSize">10</option>
+        <option name="charting.chart.bubbleSizeBy">area</option>
+        <option name="charting.chart.nullValueMode">zero</option>
+        <option name="charting.chart.overlayFields">"Size (KiB) in $how$"</option>
+        <option name="charting.chart.showDataLabels">minmax</option>
+        <option name="charting.chart.sliceCollapsingThreshold">0.01</option>
+        <option name="charting.chart.stackMode">default</option>
+        <option name="charting.chart.style">shiny</option>
+        <option name="charting.drilldown">none</option>
+        <option name="charting.layout.splitSeries">0</option>
+        <option name="charting.layout.splitSeries.allowIndependentYRanges">0</option>
+        <option name="charting.legend.labelStyle.overflowMode">ellipsisMiddle</option>
+        <option name="charting.legend.mode">seriesCompare</option>
+        <option name="charting.legend.placement">right</option>
+        <option name="charting.lineWidth">2</option>
+        <option name="height">465</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="trellis.enabled">0</option>
+        <option name="trellis.scales.shared">0</option>
+        <option name="trellis.size">large</option>
+        <option name="trellis.splitBy">src_user</option>
+      </chart>
+      <chart depends="$wild$">
+        <title>Number of mail in $how$</title>
+        <search>
+          <query>index="summary_email_$index_base$" flow=$flow$ src_user=$account$
+                    | timechart span=$how$
+                        sum(recipient_count) as "Recip. in $how$"
+                        count(src_user) as "Mail in $how$"
+                        eval(round(sum(size)/1024,1)) as "Size (KiB) in $how$"
+                          by src_user limit=$limit$ useother=false
+          </query>
+          <earliest>$interval.earliest$</earliest>
+          <latest>$interval.latest$</latest>
+        </search>
+        <option name="charting.axisLabelsX.majorLabelStyle.overflowMode">ellipsisNone</option>
+        <option name="charting.axisLabelsX.majorLabelStyle.rotation">0</option>
+        <option name="charting.axisTitleX.text">ora del giorno</option>
+        <option name="charting.axisTitleX.visibility">visible</option>
+        <option name="charting.axisTitleY.visibility">visible</option>
+        <option name="charting.axisTitleY2.visibility">visible</option>
+        <option name="charting.axisX.abbreviation">none</option>
+        <option name="charting.axisX.scale">linear</option>
+        <option name="charting.axisY.abbreviation">none</option>
+        <option name="charting.axisY.scale">linear</option>
+        <option name="charting.axisY2.abbreviation">none</option>
+        <option name="charting.axisY2.enabled">1</option>
+        <option name="charting.axisY2.scale">inherit</option>
+        <option name="charting.chart">area</option>
+        <option name="charting.chart.bubbleMaximumSize">50</option>
+        <option name="charting.chart.bubbleMinimumSize">10</option>
+        <option name="charting.chart.bubbleSizeBy">area</option>
+        <option name="charting.chart.nullValueMode">zero</option>
+        <option name="charting.chart.overlayFields">"Size (KiB) in $how$"</option>
+        <option name="charting.chart.showDataLabels">minmax</option>
+        <option name="charting.chart.sliceCollapsingThreshold">0.01</option>
+        <option name="charting.chart.stackMode">default</option>
+        <option name="charting.chart.style">shiny</option>
+        <option name="charting.drilldown">none</option>
+        <option name="charting.layout.splitSeries">0</option>
+        <option name="charting.layout.splitSeries.allowIndependentYRanges">0</option>
+        <option name="charting.legend.labelStyle.overflowMode">ellipsisMiddle</option>
+        <option name="charting.legend.mode">seriesCompare</option>
+        <option name="charting.legend.placement">right</option>
+        <option name="charting.lineWidth">2</option>
+        <option name="height">465</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="trellis.enabled">1</option>
+        <option name="trellis.scales.shared">0</option>
+        <option name="trellis.size">large</option>
+        <option name="trellis.splitBy">src_user</option>
+      </chart>
+    </panel>
+  </row>
+  <row rejects="$notAllowed$,$showForecast$" depends="$showSummary$">
+    <panel>
+      <title>Summary by top usernames</title>
+      <table depends="$wild$">
+        <title>Top $limit$ usernames by max mail</title>
+        <search base="wildaccount_msg">
+          <query>
+            stats  max("N. Msg last $how$") AS "MAX Mail in $how$"
+              by _time src_user
+            | sort -"MAX Mail in $how$"
+            | dedup src_user
+          </query>
+        </search>
+        <option name="count">10</option>
+        <option name="drilldown">none</option>
+        <option name="percentagesRow">false</option>
+        <option name="totalsRow">false</option>
+        <option name="wrap">false</option>
+      </table>
+      <table depends="$wild$">
+        <title>Top $limit$ usernames by average mail</title>
+        <search base="wildaccount_msg">
+          <query>fillnull
+            | stats max(N. Msg last $how$) AS "MAX Mail in $how$"
+                    avg(N. Msg last $how$) AS "MEAN Mail in $how$"
+                    stdev(N. Msg last $how$) AS "STDEV Mail in $how$"
+              by src_user
+            | sort -"MEAN Mail in $how$"
+          </query>
+        </search>
+        <option name="count">10</option>
+        <option name="drilldown">none</option>
+        <option name="totalsRow">false</option>
+        <format type="number" field="MEAN Mail in 1hour">
+          <option name="precision">1</option>
+          <option name="useThousandSeparators">false</option>
+        </format>
+        <format type="number" field="STDEV Mail in 1hour">
+          <option name="precision">1</option>
+          <option name="useThousandSeparators">false</option>
+        </format>
+        <format type="number" field="MEAN Mail in 1day">
+          <option name="precision">1</option>
+          <option name="useThousandSeparators">false</option>
+        </format>
+        <format type="number" field="STDEV Mail in 1day">
+          <option name="precision">1</option>
+          <option name="useThousandSeparators">false</option>
+        </format>
+      </table>
+      <table depends="$wild$">
+        <title>Top $limit$ usernames by max recipients</title>
+        <search base="wildaccount_nrcpt">
+          <query>
+            stats  max("N. Recip. last $how$") AS "MAX Recipients in $how$"
+              by _time src_user
+            | sort -"MAX Recipients in $how$"
+            | dedup src_user
+          </query>
+        </search>
+        <option name="count">10</option>
+        <option name="drilldown">none</option>
+      </table>
+      <table depends="$wild$">
+        <title>Top $limit$ usernames by average recipients</title>
+        <search base="wildaccount_nrcpt">
+          <query>fillnull
+            | stats max(N. Recip. last $how$) AS "MAX Recipients in $how$"
+                    avg(N. Recip. last $how$) AS "MEAN Recipients in $how$"
+                    stdev(N. Recip. last $how$) AS "STDEV Recipients in $how$"
+              by src_user
+            | sort -"MEAN Recipients in $how$"</query>
+        </search>
+        <option name="count">10</option>
+        <option name="drilldown">none</option>
+        <option name="totalsRow">false</option>
+        <format type="number" field="MEAN Recipients in 1hour">
+          <option name="precision">1</option>
+          <option name="useThousandSeparators">false</option>
+        </format>
+        <format type="number" field="STDEV Recipients in 1hour">
+          <option name="precision">1</option>
+          <option name="useThousandSeparators">false</option>
+        </format>
+        <format type="number" field="MEAN Recipients in 1day">
+          <option name="precision">1</option>
+          <option name="useThousandSeparators">false</option>
+        </format>
+        <format type="number" field="STDEV Recipients in 1day">
+          <option name="precision">1</option>
+          <option name="useThousandSeparators">false</option>
+        </format>
+      </table>
+      <table depends="$wild$">
+        <title>Top $limit$ usernames by max size</title>
+        <search base="wildaccount_size">
+          <query>stats  max("Size last $how$") AS "MAX Size (MiB) in $how$"
+              by _time src_user
+            | sort -"MAX Size (MiB) in $how$"
+            | dedup src_user
+            | fieldformat "MAX Size (MiB) in $how$"=round('MAX Size (MiB) in $how$'/1024/1024,1)</query>
+        </search>
+        <option name="count">10</option>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </table>
+      <table depends="$wild$">
+        <title>Top $limit$ usernames by average size</title>
+        <search base="wildaccount_size">
+          <query>fillnull
+            | stats max(Size last $how$) AS "MAX Size (MiB) in $how$"
+                    avg(Size last $how$) AS "MEAN Size (MiB) in $how$"
+                    stdev(Size last $how$) AS "STDEV Size (MiB) in $how$"
+              by src_user
+            | sort -"MEAN Size (MiB) in $how$"
+            | fieldformat "MAX Size (MiB) in $how$"=round('MAX Size (MiB) in $how$'/1024/1024,1)
+            | fieldformat "MEAN Size (MiB) in $how$"=round('MEAN Size (MiB) in $how$'/1024/1024,1)
+            | fieldformat "STDEV Size (MiB) in $how$"=round('STDEV Size (MiB) in $how$'/1024/1024,1)</query>
+        </search>
+        <option name="count">10</option>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="totalsRow">false</option>
+      </table>
+    </panel>
+  </row>
+  <row rejects="$notAllowed$,$showForecast$" depends="$showSummary$">
+    <panel rejects="$noAccount$">
+      <title>Emails</title>
+      <chart>
+        <title>N. Msg per $how$</title>
+        <search base="tot">
+          <query>gauge "MEAN N. Msg per $how$" "MIN N. Msg per $how$" "MAX N. Msg per $how$"</query>
+        </search>
+        <option name="charting.axisTitleX.visibility">visible</option>
+        <option name="charting.axisTitleY.visibility">visible</option>
+        <option name="charting.axisTitleY2.visibility">visible</option>
+        <option name="charting.chart">fillerGauge</option>
+        <option name="charting.chart.style">shiny</option>
+        <option name="charting.legend.placement">right</option>
+        <option name="refresh.display">preview</option>
+        <option name="trellis.enabled">0</option>
+      </chart>
+    </panel>
+    <panel rejects="$noAccount$">
+      <title>Recipients</title>
+      <chart>
+        <title>N. Recip. per $how$</title>
+        <search base="tot">
+          <query>gauge "MEAN N. Recip. per $how$" "MIN N. Recip. per $how$" "MAX N. Recip. per $how$"</query>
+        </search>
+        <option name="charting.axisTitleX.visibility">visible</option>
+        <option name="charting.axisTitleY.visibility">visible</option>
+        <option name="charting.axisTitleY2.visibility">visible</option>
+        <option name="charting.chart">fillerGauge</option>
+        <option name="charting.chart.style">shiny</option>
+        <option name="charting.legend.placement">right</option>
+        <option name="charting.chart.columnSpacing">100</option>
+        <option name="refresh.display">preview</option>
+        <option name="trellis.enabled">0</option>
+      </chart>
+    </panel>
+    <panel rejects="$noAccount$">
+      <title>Size</title>
+      <chart>
+        <title>Size (MiB) per $how$</title>
+        <search base="tot">
+          <query>gauge "MEAN Size (MiB) per $how$" "MIN Size (MiB) per $how$" "MAX Size (MiB) per $how$"</query>
+        </search>
+        <option name="charting.axisTitleX.visibility">visible</option>
+        <option name="charting.axisTitleY.visibility">visible</option>
+        <option name="charting.axisTitleY2.visibility">visible</option>
+        <option name="charting.chart">fillerGauge</option>
+        <option name="charting.chart.style">shiny</option>
+        <option name="charting.legend.placement">right</option>
+        <option name="charting.chart.columnSpacing">100</option>
+        <option name="refresh.display">preview</option>
+        <option name="trellis.enabled">0</option>
+      </chart>
+    </panel>
+  </row>
+  <row rejects="$notAllowed$,$showForecast$" depends="$showSummary$">
+    <panel rejects="$noAccount$">
+      <table>
+        <search base="tot">
+          <query>fields "*N. Msg per $how$"
+                | transpose column_name="N. Msg per $how$"
+                | rename "row 1" as value
+          </query>
+        </search>
+        <option name="count">10</option>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </table>
+    </panel>
+    <panel rejects="$noAccount$">
+      <table>
+        <search base="tot">
+          <query>fields "*N. Recip. per $how$"
+                | transpose column_name="N. Recip. per $how$"
+                | rename "row 1" as value
+          </query>
+        </search>
+        <option name="count">10</option>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </table>
+    </panel>
+    <panel rejects="$noAccount$">
+      <table>
+        <search base="tot">
+          <query>fields "*Size (MiB) per $how$"
+                | transpose column_name="Size (MiB) per $how$"
+                | rename "row 1" as value
+          </query>
+        </search>
+        <option name="count">10</option>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </table>
+    </panel>
+  </row>
+  <row rejects="$notAllowed$,$showForecast$" depends="$showSummary$">
+    <panel rejects="$noAccount$">
+      <title>Overall trends</title>
+      <single>
+        <title>Statistics trend last $how$ of selected end time</title>
+        <search base="timeslot">
+          <query>fieldformat  "Size (MiB) last $how$"='Size (MiB) last $how$'/1024/1024
+                | fieldformat  "Mean Size (KiB) last $how$"='Mean Size (KiB) last $how$'/1024
+          </query>
+        </search>
+        <option name="colorBy">trend</option>
+        <option name="drilldown">none</option>
+        <option name="height">475</option>
+        <option name="numberPrecision">0</option>
+        <option name="rangeColors">["0x53a051","0x0877a6","0xf8be34","0xf1813f","0xdc4e41"]</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="trellis.enabled">1</option>
+        <option name="trellis.size">large</option>
+        <option name="trellis.splitBy">_aggregation</option>
+        <option name="trendDisplayMode">percent</option>
+        <option name="useColors">1</option>
+        <option name="useThousandSeparators">0</option>
+      </single>
+      <html>
+        <br/>
+      </html>
+      <table depends="$wildheadsearch$">
+        <title>Overall totals in selected time</title>
+        <search>
+          <query>index="summary_email_$index_base$" flow=$flow$ src_user=$account$
+            | chart
+              sum(recipient_count) as "TOT Destinatari"
+              count(src_user) as "TOT Messaggi"
+              sum(size) as "TOT Size (MiB)" by src_user
+            | eval  "TOT Size (MiB)"=round('TOT Size (MiB)'/1024/1024,1)
+            | sort -"TOT Destinatari"
+            $wildheadsearch$</query>
+          <earliest>$interval.earliest$</earliest>
+          <latest>$interval.latest$</latest>
+        </search>
+        <option name="count">10</option>
+        <option name="drilldown">none</option>
+        <option name="totalsRow">true</option>
+        <format type="number" field="TOT Size (MiB)">
+          <option name="precision">1</option>
+          <option name="useThousandSeparators">false</option>
+        </format>
+      </table>
+    </panel>
+  </row>
+  <row rejects="$notAllowed$,$showForecast$" depends="$showSummary$">
+    <panel rejects="$noAccount$">
+      <input type="radio" token="wday" searchWhenChanged="true" depends="$showSummary$">
+        <label></label>
+        <choice value="date_wday">Day week</choice>
+        <choice value="">No day week</choice>
+        <default></default>
+      </input>
+      <chart>
+        <title>Mean sum of recipients and size by day hours distribution</title>
+        <search>
+          <query>index="summary_email_$index_base$"
+                flow=$flow$ src_user=$account$
+    | timechart span=1h sum(recipient_count) as sumHourlyDest
+                        sum(size) as sumHourlySize
+    | eval date_hour=strftime(_time,"%1H")
+    | eval date_wday=strftime(_time,"%A")
+    | chart eval(round(avg(sumHourlyDest),1)) AS "Hourly Dest"
+            eval(round(avg(sumHourlySize)/1024/1024,1)) AS "Hourly Size (MiB)"
+            BY date_hour $wday$</query>
+          <earliest>$interval.earliest$</earliest>
+          <latest>$interval.latest$</latest>
+        </search>
+        <option name="charting.axisLabelsX.majorLabelStyle.overflowMode">ellipsisNone</option>
+        <option name="charting.axisLabelsX.majorLabelStyle.rotation">-45</option>
+        <option name="charting.axisTitleX.visibility">visible</option>
+        <option name="charting.axisTitleY.visibility">visible</option>
+        <option name="charting.axisTitleY2.visibility">visible</option>
+        <option name="charting.axisY.abbreviation">none</option>
+        <option name="charting.axisY.scale">linear</option>
+        <option name="charting.axisY2.abbreviation">none</option>
+        <option name="charting.axisY2.enabled">0</option>
+        <option name="charting.chart">area</option>
+        <option name="charting.chart.nullValueMode">zero</option>
+        <option name="charting.chart.showDataLabels">minmax</option>
+        <option name="charting.drilldown">none</option>
+        <option name="charting.layout.splitSeries">0</option>
+        <option name="charting.legend.mode">seriesCompare</option>
+        <option name="charting.legend.placement">right</option>
+        <option name="height">460</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="trellis.enabled">1</option>
+        <option name="trellis.scales.shared">0</option>
+        <option name="trellis.size">large</option>
+        <option name="trellis.splitBy">_aggregation</option>
+      </chart>
+    </panel>
+  </row>
+  <row depends="$showForecast$">
+    <panel>
+      <title>Forecast mail sent</title>
+      <viz type="Splunk_ML_Toolkit.ForecastViz">
+        <search>
+          <query>index="summary_email_1h"  flow=outbound src_user=*
+                    | timechart span=1hour count(src_user) as "Mail in 1hour" | predict "Mail in 1hour" as prediction algorithm=LLP holdback=0 future_timespan=336 period=168 upper95=upper95 lower0=lower95 | `forecastviz(336, 0, "Mail in 1hour", 95)`</query>
+          <earliest>-3w@w</earliest>
+          <latest>-1h@h</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="trellis.enabled">0</option>
+        <option name="trellis.scales.shared">1</option>
+        <option name="trellis.size">medium</option>
+      </viz>
+    </panel>
+  </row>
+</form>

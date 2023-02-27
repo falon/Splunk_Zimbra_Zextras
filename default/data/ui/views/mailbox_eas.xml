@@ -1,0 +1,336 @@
+<form version="1.1">
+  <init>
+    <unset token="option"></unset>
+    <unset token="action"></unset>
+    <unset token="showAccount"></unset>
+    <unset token="account"></unset>
+  </init>
+  <label>EAS</label>
+  <description>EAS Statistics</description>
+  <fieldset submitButton="false">
+    <input type="radio" token="showAccount">
+      <label>By</label>
+      <choice value="">action</choice>
+      <choice value="account">account</choice>
+      <change>
+        <eval token="showAccount">if(len('value')&gt;0,true(),null())</eval>
+      </change>
+      <default></default>
+    </input>
+    <input type="time" token="interval">
+      <label>interval</label>
+      <default>
+        <earliest>-4h@m</earliest>
+        <latest>now</latest>
+      </default>
+    </input>
+    <input type="text" token="account" searchWhenChanged="true" depends="$showAccount$">
+      <label>Target</label>
+    </input>
+    <input type="dropdown" token="action" rejects="$showAccount$">
+      <label>Action</label>
+      <choice value="Asked synchronization">Asked synchronization</choice>
+      <choice value="Changes found for pending Ping">Changes found for pending Ping</choice>
+      <choice value="Invalid SyncKey">Invalid SyncKey</choice>
+      <choice value="Moving the item">Moving the item</choice>
+      <choice value="Receiving add message">Receiving add message</choice>
+      <choice value="Receiving changes on message">Receiving changes on message</choice>
+      <choice value="Requested push notification">Requested push notification</choice>
+      <choice value="Sending deleted items">Sending deleted items</choice>
+      <choice value="Sending modified items">Sending modified items</choice>
+      <choice value="Sending new items">Sending new items</choice>
+      <choice value="Unable to change message, message not found">Unable to change message, message not found</choice>
+      <choice value="Unable to synchronize folders">Unable to synchronize folders</choice>
+      <choice value="Blocked looping device">Blocked device</choice>
+      <choice value="Device asked server configurations">Asked conf</choice>
+      <change>
+        <eval token="option">case('value'=="Asked synchronization","eas_folder days",'value'=="Requested push notification","eas_folder heartbeat", 'value'=="Unable to synchronize folders", "", 'value'=="Blocked looping device", "model device_id", 'value'=="Device asked server configurations", "", true(),"eas_folder")</eval>
+      </change>
+    </input>
+  </fieldset>
+  <row rejects="$showAccount$">
+    <panel rejects="$action$">
+      <table>
+        <title>Operation Errors</title>
+        <search>
+          <query>index=mailbox sourcetype=zimbra:easlog log_level!="INFO" | eval action=if(isnull(action),"undefined", action) | chart count(action) over action by model</query>
+          <earliest>$interval.earliest$</earliest>
+          <latest>$interval.latest$</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="count">20</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">none</option>
+        <option name="percentagesRow">false</option>
+        <option name="rowNumbers">false</option>
+        <option name="totalsRow">true</option>
+        <option name="wrap">true</option>
+      </table>
+    </panel>
+    <panel>
+      <chart>
+        <title>Overall statistics</title>
+        <search>
+          <query>index=mailbox component=sync action=* | chart count(action) as calls by action where calls in top50</query>
+          <earliest>$interval.earliest$</earliest>
+          <latest>$interval.latest$</latest>
+        </search>
+        <option name="charting.chart">pie</option>
+        <option name="charting.chart.sliceCollapsingThreshold">0</option>
+        <option name="charting.drilldown">all</option>
+        <option name="height">400</option>
+        <option name="refresh.display">progressbar</option>
+        <drilldown>
+          <set token="action">$click.value$</set>
+          <eval token="option">case('action'=="Asked synchronization","eas_folder days",'action'=="Requested push notification","eas_folder heartbeat", 'action'=="Unable to synchronize folders", "", 'action'=="Blocked looping device", "model device_id", 'action'=="Device asked server configurations", "", true(),"eas_folder")</eval>
+          <unset token="daysync"></unset>
+          <unset token="proto"></unset>
+          <unset token="model"></unset>
+        </drilldown>
+      </chart>
+    </panel>
+    <panel rejects="$action$,$daysync$,$proto$,$model$">
+      <html>
+        <style>
+          .center {
+            margin: 20%;
+            width: 50%;
+            border: 0px solid green;
+            padding: 50px 0;
+          }
+        </style>
+        <p class="center">Please, click over an action from area chart, or select your favourite action from the menu.<br/>
+                          Alternatively, click on <b>Top graphs</b> below to see other useful details.</p>
+      </html>
+    </panel>
+    <panel depends="$action$">
+      <table>
+        <title>Top 10 $action$</title>
+        <search>
+          <query>index=mailbox sourcetype=zimbra:easlog action="$action$" | top showperc=f authz_name $option$ src_ip | iplocation src_ip lang=it | fields - lat - lon</query>
+          <earliest>$interval.earliest$</earliest>
+          <latest>$interval.latest$</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="count">20</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">none</option>
+        <option name="percentagesRow">false</option>
+        <option name="rowNumbers">false</option>
+        <option name="totalsRow">false</option>
+        <option name="wrap">true</option>
+        <format type="color" field="count">
+          <colorPalette type="minMidMax" maxColor="#D41F1F" minColor="#FFFFFF"></colorPalette>
+          <scale type="minMidMax" minValue="1000"></scale>
+        </format>
+      </table>
+    </panel>
+    <panel depends="$model$">
+      <table>
+        <title>Top user with model = $model$</title>
+        <search>
+          <query>index=mailbox sourcetype=zimbra:easlog action="Asked synchronization" model=$model$ | top showperc=f auth_name</query>
+          <earliest>$interval.earliest$</earliest>
+          <latest>$interval.latest$</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </table>
+    </panel>
+    <panel depends="$proto$">
+      <table>
+        <title>Top user with EAS protocol = $proto$</title>
+        <search>
+          <query>index=mailbox sourcetype=zimbra:easlog action="Asked synchronization" eas_protocol=$proto$ | top showperc=f auth_name</query>
+          <earliest>$interval.earliest$</earliest>
+          <latest>$interval.latest$</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </table>
+    </panel>
+    <panel depends="$daysync$">
+      <table>
+        <title>Top user with days to sync = $daysync$</title>
+        <search>
+          <query>index=mailbox sourcetype=zimbra:easlog action="Asked synchronization" days=$daysync$| top showperc=f auth_name</query>
+          <earliest>$interval.earliest$</earliest>
+          <latest>$interval.latest$</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </table>
+    </panel>
+  </row>
+  <row rejects="$showAccount$">
+    <panel>
+      <title>Top model</title>
+      <chart>
+        <search>
+          <query>index=mailbox sourcetype=zimbra:easlog action="Asked synchronization" | top showperc=f model</query>
+          <earliest>-4h@m</earliest>
+          <latest>now</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="charting.axisLabelsX.majorLabelStyle.overflowMode">ellipsisNone</option>
+        <option name="charting.axisLabelsX.majorLabelStyle.rotation">0</option>
+        <option name="charting.axisTitleX.visibility">visible</option>
+        <option name="charting.axisTitleY.visibility">visible</option>
+        <option name="charting.axisTitleY2.visibility">visible</option>
+        <option name="charting.axisX.abbreviation">none</option>
+        <option name="charting.axisX.scale">linear</option>
+        <option name="charting.axisY.abbreviation">none</option>
+        <option name="charting.axisY.scale">linear</option>
+        <option name="charting.axisY2.abbreviation">none</option>
+        <option name="charting.axisY2.enabled">0</option>
+        <option name="charting.axisY2.scale">inherit</option>
+        <option name="charting.chart">bar</option>
+        <option name="charting.chart.bubbleMaximumSize">50</option>
+        <option name="charting.chart.bubbleMinimumSize">10</option>
+        <option name="charting.chart.bubbleSizeBy">area</option>
+        <option name="charting.chart.nullValueMode">gaps</option>
+        <option name="charting.chart.showDataLabels">none</option>
+        <option name="charting.chart.sliceCollapsingThreshold">0.01</option>
+        <option name="charting.chart.stackMode">default</option>
+        <option name="charting.chart.style">shiny</option>
+        <option name="charting.drilldown">none</option>
+        <option name="charting.layout.splitSeries">0</option>
+        <option name="charting.layout.splitSeries.allowIndependentYRanges">0</option>
+        <option name="charting.legend.labelStyle.overflowMode">ellipsisMiddle</option>
+        <option name="charting.legend.mode">standard</option>
+        <option name="charting.legend.placement">none</option>
+        <option name="charting.lineWidth">2</option>
+        <option name="trellis.enabled">0</option>
+        <option name="trellis.scales.shared">1</option>
+        <option name="trellis.size">medium</option>
+        <option name="charting.drilldown">all</option>
+        <drilldown>
+          <set token="model">$click.value$</set>
+          <unset token="daysync"></unset>
+          <unset token="proto"></unset>
+          <unset token="action"></unset>
+        </drilldown>
+      </chart>
+    </panel>
+    <panel>
+      <title>Top protocol version</title>
+      <chart>
+        <search>
+          <query>index=mailbox sourcetype=zimbra:easlog action="Asked synchronization" | top showperc=f eas_protocol | sort - eas_protocol</query>
+          <earliest>-4h@m</earliest>
+          <latest>now</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="charting.axisLabelsX.majorLabelStyle.overflowMode">ellipsisNone</option>
+        <option name="charting.axisLabelsX.majorLabelStyle.rotation">0</option>
+        <option name="charting.axisTitleX.visibility">visible</option>
+        <option name="charting.axisTitleY.visibility">visible</option>
+        <option name="charting.axisTitleY2.visibility">visible</option>
+        <option name="charting.axisX.abbreviation">none</option>
+        <option name="charting.axisX.scale">linear</option>
+        <option name="charting.axisY.abbreviation">none</option>
+        <option name="charting.axisY.scale">linear</option>
+        <option name="charting.axisY2.abbreviation">none</option>
+        <option name="charting.axisY2.enabled">0</option>
+        <option name="charting.axisY2.scale">inherit</option>
+        <option name="charting.chart">bar</option>
+        <option name="charting.chart.bubbleMaximumSize">50</option>
+        <option name="charting.chart.bubbleMinimumSize">10</option>
+        <option name="charting.chart.bubbleSizeBy">area</option>
+        <option name="charting.chart.nullValueMode">gaps</option>
+        <option name="charting.chart.showDataLabels">none</option>
+        <option name="charting.chart.sliceCollapsingThreshold">0.01</option>
+        <option name="charting.chart.stackMode">default</option>
+        <option name="charting.chart.style">shiny</option>
+        <option name="charting.drilldown">all</option>
+        <option name="charting.layout.splitSeries">1</option>
+        <option name="charting.layout.splitSeries.allowIndependentYRanges">1</option>
+        <option name="charting.legend.labelStyle.overflowMode">ellipsisMiddle</option>
+        <option name="charting.legend.mode">standard</option>
+        <option name="charting.legend.placement">none</option>
+        <option name="charting.lineWidth">2</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="trellis.enabled">0</option>
+        <option name="trellis.scales.shared">1</option>
+        <option name="trellis.size">large</option>
+        <option name="trellis.splitBy">_aggregation</option>
+        <drilldown>
+          <set token="proto">$click.value$</set>
+          <unset token="daysync"></unset>
+          <unset token="model"></unset>
+          <unset token="action"></unset>
+        </drilldown>
+      </chart>
+    </panel>
+    <panel>
+      <title>Top days to keep in sync</title>
+      <chart>
+        <search>
+          <query>index=mailbox sourcetype=zimbra:easlog action="Asked synchronization" | top showperc=f days | sort - days</query>
+          <earliest>-4h@m</earliest>
+          <latest>now</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="charting.axisLabelsX.majorLabelStyle.overflowMode">ellipsisNone</option>
+        <option name="charting.axisLabelsX.majorLabelStyle.rotation">0</option>
+        <option name="charting.axisTitleX.visibility">visible</option>
+        <option name="charting.axisTitleY.visibility">visible</option>
+        <option name="charting.axisTitleY2.visibility">visible</option>
+        <option name="charting.axisX.abbreviation">none</option>
+        <option name="charting.axisX.scale">linear</option>
+        <option name="charting.axisY.abbreviation">none</option>
+        <option name="charting.axisY.scale">linear</option>
+        <option name="charting.axisY2.abbreviation">none</option>
+        <option name="charting.axisY2.enabled">0</option>
+        <option name="charting.axisY2.scale">inherit</option>
+        <option name="charting.chart">bar</option>
+        <option name="charting.chart.bubbleMaximumSize">50</option>
+        <option name="charting.chart.bubbleMinimumSize">10</option>
+        <option name="charting.chart.bubbleSizeBy">area</option>
+        <option name="charting.chart.nullValueMode">gaps</option>
+        <option name="charting.chart.showDataLabels">none</option>
+        <option name="charting.chart.sliceCollapsingThreshold">0.01</option>
+        <option name="charting.chart.stackMode">default</option>
+        <option name="charting.chart.style">shiny</option>
+        <option name="charting.drilldown">all</option>
+        <option name="charting.layout.splitSeries">1</option>
+        <option name="charting.layout.splitSeries.allowIndependentYRanges">1</option>
+        <option name="charting.legend.labelStyle.overflowMode">ellipsisMiddle</option>
+        <option name="charting.legend.mode">standard</option>
+        <option name="charting.legend.placement">right</option>
+        <option name="charting.lineWidth">2</option>
+        <option name="trellis.enabled">0</option>
+        <option name="trellis.scales.shared">1</option>
+        <option name="trellis.size">large</option>
+        <option name="trellis.splitBy">_aggregation</option>
+        <drilldown>
+          <set token="daysync">$click.value$</set>
+          <unset token="proto"></unset>
+          <unset token="model"></unset>
+          <unset token="action"></unset>
+        </drilldown>
+      </chart>
+    </panel>
+  </row>
+  <row depends="$showAccount$">
+    <panel>
+      <title>History by account</title>
+      <table depends="$account$">
+        <search>
+          <query>index=mailbox sourcetype=zimbra:easlog authz_name="$account$" | transaction mvlist=f src_ip eas_protocol model | table _time src_ip eas_protocol model message</query>
+          <earliest>$interval.earliest$</earliest>
+          <latest>$interval.latest$</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="count">20</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">none</option>
+        <option name="percentagesRow">false</option>
+        <option name="refresh.display">preview</option>
+        <option name="rowNumbers">false</option>
+        <option name="totalsRow">false</option>
+        <option name="wrap">true</option>
+      </table>
+    </panel>
+  </row>
+</form>

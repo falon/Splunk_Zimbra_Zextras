@@ -1,0 +1,50 @@
+<dashboard version="1.1">
+  <label>Message Size Exceeded</label>
+  <description>There are two type of exception. The first is when the client tries to send the message and the server stops it at exceeding size.
+    The second is when the client announces the SIZE before sending the mail, allowing the server to reject immediately the connection.</description>
+  <fieldset submitButton="true">
+    <input type="time" token="field1">
+      <label></label>
+      <default>
+        <earliest>@d</earliest>
+        <latest>now</latest>
+      </default>
+    </input>
+    <input type="text" token="message_id">
+      <label>Message ID</label>
+      <default>*</default>
+    </input>
+  </fieldset>
+  <row>
+    <panel>
+      <title>Mail exceeding permitted size</title>
+      <table>
+        <title>Client trying to send the mail anyway</title>
+        <search>
+          <query> [search mta_server=* "queue file size limit exceeded" internal_message_id=* | table mta_server internal_message_id] | transaction internal_message_id, mta_server | search message_id="$message_id$" | table _time src src_ip from internal_message_id</query>
+          <earliest>$field1.earliest$</earliest>
+          <latest>$field1.latest$</latest>
+        </search>
+        <option name="count">10</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="rowNumbers">false</option>
+        <option name="wrap">true</option>
+      </table>
+      <table>
+        <title>Client announcing SIZE</title>
+        <search>
+          <query>mta_server=* "Message size exceeds fixed limit" | table _raw</query>
+          <earliest>$field1.earliest$</earliest>
+          <latest>$field1.latest$</latest>
+        </search>
+        <option name="wrap">true</option>
+        <option name="rowNumbers">false</option>
+        <option name="drilldown">row</option>
+        <option name="count">10</option>
+        <option name="dataOverlayMode">none</option>
+      </table>
+    </panel>
+  </row>
+</dashboard>

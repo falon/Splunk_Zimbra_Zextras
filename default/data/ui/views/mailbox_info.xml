@@ -1,0 +1,453 @@
+<form version="1.1">
+  <search id="soap">
+    <query>| makeresults | eval authz_name="$mbox$" | name2info field=authz_name | rename authz_name as "Mailbox Name" | fields "Mailbox Name" zimbra* givenName sn mail isAccount | fields - _time</query>
+    <earliest>-1s@s</earliest>
+    <latest>now</latest>
+    <sampleRatio>1</sampleRatio>
+    <progress>
+      <!-- Set the token to Show Spinner when the search is running -->
+      <set token="showSpinner">true</set>
+      <unset token="listname"></unset>
+      <unset token="exists"></unset>
+    </progress>
+    <done>
+      <!-- Unset the token to Hide Spinner when the search completes -->
+      <unset token="showSpinner"></unset>
+      <eval token="exists">if($result.isAccount$==1, true(), null())</eval>
+    </done>
+  </search>
+  <label>Mailbox Info</label>
+  <description>Christmas edition</description>
+  <fieldset submitButton="false">
+    <input type="text" token="mbox">
+      <label>Mailbox Name</label>
+      <change>
+        <unset token="exists"></unset>
+      </change>
+    </input>
+  </fieldset>
+  <row>
+    <panel>
+      <html depends="$showSpinner$">
+        <!-- CSS Style to Create Spinner using animation -->
+        <style>
+          .loadSpinner {
+            margin: 0 auto;
+            border: 5px solid #FFF; /* White BG */
+            border-top: 5px solid #3863A0; /* Blue */
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+          }
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+          @keyframes blinker {
+            50% {
+              opacity: 0;
+            }
+          }
+
+          .progress-bar{
+            visibility: hidden;
+          }
+          img {
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+          }
+          p {
+            text-align: center;
+          }
+          p.desc {
+            text-align: justify
+          }
+
+          #panel_error .dashboard-panel .dashboard-element-title, 
+          #eas_blocked .dashboard-element-title {
+            background: red;
+            color: white;
+            animation: blinker 2s linear 4;
+          }
+        </style>
+        <div class="loadSpinner"/>
+        <img src="/static/app/Splunk_Zimbra_Zextras/natale.gif"/>
+        <p>Asking data to Zimbra...</p>
+    </html>
+    </panel>
+  </row>
+  <row depends="$mbox$,$exists$" rejects="$showSpinner$">
+    <panel>
+      <table>
+        <search base="soap">
+          <query>eval mail=mvjoin(mail,", ") | eval identity="Mailbox Name: " . 'Mailbox Name' 
+                    . "\0 Name: " . givenName 
+                    . "\0 Surname or Type: " . sn 
+                    . "\0 Mail: " . mail
+                    . "\0 Account ID: " . zimbraId 
+                    . "\0 Mailbox ID: " . zimbraMailboxId 
+                    . "\0 Mailbox Server: " . zimbraMailHost 
+                    . "\0 List mail by thread: " . zimbraFeatureConversationsEnabled 
+                  | fields identity | makemv delim="\0" identity</query>
+        </search>
+        <option name="drilldown">none</option>
+      </table>
+    </panel>
+    <panel>
+      <title>Mailbox Quota</title>
+      <chart>
+        <search base="soap">
+          <query>|  eval zimbraMailSize=zimbraMailSize/1073741824, zimbraMailQuota=zimbraMailQuota/1073741824, attz=0.75*zimbraMailQuota, warn=zimbraQuotaWarnPercent/100*zimbraMailQuota
+| gauge zimbraMailSize 0 attz warn zimbraMailQuota</query>
+        </search>
+        <option name="charting.chart">markerGauge</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="height">200</option>
+      </chart>
+      <single>
+        <title>Current Size</title>
+        <search base="soap">
+          <query>|  eval zimbraMailSize=zimbraMailSize/1073741824, zimbraMailQuota=zimbraMailQuota/1073741824, attz=0.75*zimbraMailQuota, warn=zimbraQuotaWarnPercent/100*zimbraMailQuota
+| table zimbraMailSize attz warn</query>
+        </search>
+        <option name="height">50</option>
+        <option name="numberPrecision">0.00</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="unit">GiB</option>
+        <option name="useColors">1</option>
+      </single>
+    </panel>
+    <panel>
+      <viz type="status_indicator_app.status_indicator">
+        <search base="soap">
+          <query>eval icon=case(zimbraAccountStatus=="active","check",
+                zimbraAccountStatus=="pending","warning",
+                zimbraAccountStatus=="maintenance","info-circle",
+                true(),"times-circle"),
+     color=case(zimbraAccountStatus=="active","#118832",
+                zimbraAccountStatus IN ("pending","maintenance","locked","lockout"),"#fb7d10",
+                true(),"#d41f1f"),
+     value="Account " . zimbraAccountStatus,
+     desc=case( zimbraAccountStatus=="active","Account is at normal state.",
+                zimbraAccountStatus=="pending","<![CDATA[No login, no delivery (lmtp
+                                                server returns 5.x.x Permanent Failure), account behavior is like
+                                                closed, except that when the status is being set to pending, account
+                                                addresses are not removed from distribution lists. The use case is for
+                                                hosted new account creation based on invites that are not completed
+                                                until user accepts TOS on account creation confirmation page.]]>",
+                zimbraAccountStatus=="lockout","No login until lockout duration is over, mail delivery OK.",
+                zimbraAccountStatus=="locked","No login, mail delivery OK.",
+                zimbraAccountStatus=="maintenance","<![CDATA[No login, no delivery (lmtp server returns 4.x.x Persistent Transient Failure).]]>",
+                zimbraAccountStatus=="closed","<![CDATA[No login, no delivery (lmtp server returns 5.x.x Permanent Failure),
+                                               all addresses (account main email and all aliases) of the account are
+                                               removed from all distribution lists.]]>")
+    | fields value, icon, color, desc</query>
+          <done>
+            <set token="account_desc">$result.desc$</set>
+          </done>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="height">110</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="status_indicator_app.status_indicator.colorBy">field_value</option>
+        <option name="status_indicator_app.status_indicator.fillTarget">text</option>
+        <option name="status_indicator_app.status_indicator.fixIcon">check</option>
+        <option name="status_indicator_app.status_indicator.icon">field_value</option>
+        <option name="status_indicator_app.status_indicator.precision">0</option>
+        <option name="status_indicator_app.status_indicator.showOption">1</option>
+        <option name="status_indicator_app.status_indicator.staticColor">#118832</option>
+        <option name="status_indicator_app.status_indicator.useColors">true</option>
+        <option name="status_indicator_app.status_indicator.useThousandSeparator">true</option>
+      </viz>
+      <html>
+        <p class="desc">$account_desc$</p>
+      </html>
+      <viz type="status_indicator_app.status_indicator">
+        <search base="soap">
+          <query>eval icon=if(zimbraMailStatus=="enabled","check","times-circle"),
+                      color=if(zimbraMailStatus=="enabled","#118832","#d41f1f"),
+                      value="Mailbox " . zimbraMailStatus
+                | fields value, icon, color</query>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="height">110</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="status_indicator_app.status_indicator.colorBy">field_value</option>
+        <option name="status_indicator_app.status_indicator.fillTarget">text</option>
+        <option name="status_indicator_app.status_indicator.fixIcon">check</option>
+        <option name="status_indicator_app.status_indicator.icon">field_value</option>
+        <option name="status_indicator_app.status_indicator.precision">0</option>
+        <option name="status_indicator_app.status_indicator.showOption">1</option>
+        <option name="status_indicator_app.status_indicator.staticColor">#118832</option>
+        <option name="status_indicator_app.status_indicator.useColors">true</option>
+        <option name="status_indicator_app.status_indicator.useThousandSeparator">true</option>
+      </viz>
+    </panel>
+  </row>
+  <row depends="$mbox$,$exists$,$ERROR_show$" rejects="$showSpinner$">
+    <panel id="panel_error">
+      <table>
+        <title>During last hour there were some errors on this account!</title>
+        <search>
+          <query>index=mailbox (auth_name=$mbox$ OR authz_name=$mbox$) log_level!="INFO" | table src_ip auth_name authz_name user_agent mbox_server component action</query>
+          <earliest>-60m@m</earliest>
+          <latest>now</latest>
+          <progress>
+            <condition match="'job.resultCount' &gt; 0">
+              <set token="ERROR_show">true</set>
+            </condition>
+            <condition>
+              <unset token="ERROR_show"></unset>
+            </condition>
+          </progress>
+        </search>
+        <option name="drilldown">none</option>
+      </table>
+    </panel>
+  </row>
+  <row depends="$mbox$,$exists$" rejects="$showSpinner$">
+    <panel>
+      <table>
+        <title>Folder Configuration</title>
+        <search base="soap">
+          <query>eval folders=" Sent Folder: " . zimbraPrefSentMailFolder 
+                    . "\0 Trash Folder Lifetime: " . zimbraMailTrashLifetime 
+                    . "\0 Spam Folder Lifetime: " . zimbraMailSpamLifetime 
+                  | fields folders | makemv delim="\0" folders</query>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </table>
+    </panel>
+    <panel>
+      <table>
+        <title>Shared Items</title>
+        <search base="soap">
+          <query>mvexpand zimbraSharedItem | rename zimbraSharedItem as _raw | extract pairdelim=";" kvdelim=":" mv_add=false
+| table granteeName, granteeType, folderPath, folderDefaultView, rights, type</query>
+        </search>
+        <option name="drilldown">cell</option>
+        <drilldown>
+          <condition field="granteeName">
+            <set token="listname">$click.value2$</set>
+          </condition>
+          <condition>
+            <unset token="listname"></unset>
+          </condition>
+        </drilldown>
+      </table>
+    </panel>
+    <panel depends="$listname$">
+      <table>
+        <title>List detail of &lt;$listname$&gt;</title>
+        <search>
+          <query>| makeresults | eval name="$listname$" | name2info field="name" get="list" | fields name zimbraDistributionListSendShareMessageToNewMembers zimbraCreateTimestamp member | fields - _time | transpose column_name=Attribute | rename "row 1" as value</query>
+          <earliest>-1s@s</earliest>
+          <latest>@s</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </table>
+    </panel>
+  </row>
+  <row depends="$mbox$,$exists$" rejects="$showSpinner$">
+    <panel>
+      <title>Sieve and Forward</title>
+      <viz type="status_indicator_app.status_indicator">
+        <search base="soap">
+          <query>eval icon=if(zimbraFeatureMailForwardingEnabled=="TRUE","warning","info-circle"),
+                      color=if(zimbraFeatureMailForwardingEnabled=="TRUE","#d41f1f","#118832"),
+                      write=if(zimbraFeatureMailForwardingEnabled=="TRUE", "Mail Forward Capability: enabled", "Mail Forward Capability: disabled")
+                | fields write, icon, color</query>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="height">20</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="status_indicator_app.status_indicator.colorBy">field_value</option>
+        <option name="status_indicator_app.status_indicator.fillTarget">text</option>
+        <option name="status_indicator_app.status_indicator.fixIcon">check</option>
+        <option name="status_indicator_app.status_indicator.icon">field_value</option>
+        <option name="status_indicator_app.status_indicator.precision">0</option>
+        <option name="status_indicator_app.status_indicator.showOption">1</option>
+        <option name="status_indicator_app.status_indicator.staticColor">#118832</option>
+        <option name="status_indicator_app.status_indicator.useColors">true</option>
+        <option name="status_indicator_app.status_indicator.useThousandSeparator">true</option>
+      </viz>
+      <viz type="status_indicator_app.status_indicator">
+        <search base="soap">
+          <query>eval icon=if(zimbraFeatureMailForwardingInFiltersEnabled=="TRUE","warning","info-circle"),
+                      color=if(zimbraFeatureMailForwardingInFiltersEnabled=="TRUE","#d41f1f","#118832"),
+                      write=if(zimbraFeatureMailForwardingInFiltersEnabled=="TRUE", "In Sieve Mail Forward Capability: enabled", "In Sieve Mail Forward Capability: disabled")
+                | fields write, icon, color</query>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="height">20</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="status_indicator_app.status_indicator.colorBy">field_value</option>
+        <option name="status_indicator_app.status_indicator.fillTarget">text</option>
+        <option name="status_indicator_app.status_indicator.fixIcon">check</option>
+        <option name="status_indicator_app.status_indicator.icon">field_value</option>
+        <option name="status_indicator_app.status_indicator.precision">0</option>
+        <option name="status_indicator_app.status_indicator.showOption">1</option>
+        <option name="status_indicator_app.status_indicator.staticColor">#118832</option>
+        <option name="status_indicator_app.status_indicator.useColors">true</option>
+        <option name="status_indicator_app.status_indicator.useThousandSeparator">true</option>
+      </viz>
+      <viz type="status_indicator_app.status_indicator">
+        <search base="soap">
+          <query>eval icon=if(zimbraSieveRejectMailEnabled=="TRUE","check","warning"),
+                      color=if(zimbraSieveRejectMailEnabled=="TRUE","#118832","#d41f1f"),
+                      write=if(zimbraSieveRejectMailEnabled=="TRUE", "Reject Capability: enabled", "Reject Capability: disabled")
+                | fields write, icon, color</query>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="height">20</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="status_indicator_app.status_indicator.colorBy">field_value</option>
+        <option name="status_indicator_app.status_indicator.fillTarget">text</option>
+        <option name="status_indicator_app.status_indicator.fixIcon">check</option>
+        <option name="status_indicator_app.status_indicator.icon">field_value</option>
+        <option name="status_indicator_app.status_indicator.precision">0</option>
+        <option name="status_indicator_app.status_indicator.showOption">1</option>
+        <option name="status_indicator_app.status_indicator.staticColor">#118832</option>
+        <option name="status_indicator_app.status_indicator.useColors">true</option>
+        <option name="status_indicator_app.status_indicator.useThousandSeparator">true</option>
+      </viz>
+      <html>
+        <p>If a rule starts with <b>disabled_</b> is <i>inactive</i>.</p>
+      </html>
+      <table>
+        <search base="soap">
+          <query>table zimbraMailSieveScript</query>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </table>
+    </panel>
+    <panel>
+      <title>Last hour statistics</title>
+      <single>
+        <title>mail sent</title>
+        <search>
+          <query>[search from=$mbox$ internal_message_id=* src_type=outbound | fields mta_server internal_message_id] NOT "filter: RCPT from"
+            | transaction  maxpause=3h maxspan=6d startswith="postfix_process=*smtpd src_host=* internal_message_id=* NOT protocol=*" endswith=removed mta_server internal_message_id
+            | transaction startswith="postfix_process=smtpd src_host=* internal_message_id=* from=$mbox$ NOT protocol=*" maxpause=1m maxspan=1m  mta_server message_id
+| stats count</query>
+          <earliest>-60m@m</earliest>
+          <latest>@m</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="rangeColors">["0x555","0x1182f3"]</option>
+        <option name="rangeValues">[0]</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="useColors">1</option>
+      </single>
+      <single>
+        <title>mail received</title>
+        <search>
+          <query>[search to=$mbox$ internal_message_id=* src_type=outbound | fields mta_server internal_message_id] NOT "filter: RCPT from"
+            | transaction  maxpause=3h maxspan=6d startswith="postfix_process=*smtpd src_host=* internal_message_id=* NOT protocol=*" endswith=removed mta_server internal_message_id
+            | transaction startswith="postfix_process=smtpd src_host=* internal_message_id=* to=$mbox$ NOT protocol=*" maxpause=1m maxspan=1m  mta_server message_id
+| stats count</query>
+          <earliest>-60m@m</earliest>
+          <latest>@m</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="rangeColors">["0x555","0x1182f3"]</option>
+        <option name="rangeValues">[0]</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="useColors">1</option>
+      </single>
+      <single>
+        <title>mail deleted</title>
+        <search base="soap">
+          <query>map search="search earliest=-60m@m latest=@m index=mailbox mailbox_mid=$$zimbraMailboxId$$ mbox_server=$$zimbraMailHost$$ action=\"Deleting*\" mail_id=* | eval nmail=mvcount(mail_id)"
+            | stats sum(nmail) as del, count
+            | eval del=if(isnull(del), count, del)
+            | fields del</query>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="rangeColors">["0x555","0x1182f3"]</option>
+        <option name="rangeValues">[0]</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="useColors">1</option>
+      </single>
+      <table>
+        <title>Access by user agent</title>
+        <search base="soap">
+          <query>map search="search earliest=-60m@m latest=@m index=mailbox process=mailbox mailbox_mid=$$zimbraMailboxId$$ mbox_server=$$zimbraMailHost$$ auth_name!=migration@csi.it" | chart count over user_agent by auth_name</query>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="percentagesRow">false</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="totalsRow">false</option>
+      </table>
+      <table>
+        <title>Access by IP</title>
+        <search base="soap">
+          <query>map search="search earliest=-60m@m latest=@m index=mailbox process=mailbox mailbox_mid=$$zimbraMailboxId$$ mbox_server=$$zimbraMailHost$$ auth_name!=migration@csi.it" |
+                     chart count over src_ip by auth_name | iplocation src_ip lang=it
+                     | eval Country=if(isnull(Country),"CED",Country." ".Region), src_ip=Country." - ".src_ip
+                     | fields - City - Country - Region - lat - lon</query>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </table>
+      <table depends="$EAS_show$">
+        <title>EAS Access by model</title>
+        <search base="soap">
+          <query>map search="search earliest=-60m@m latest=@m index=mailbox process=sync mailbox_mid=$$zimbraMailboxId$$ mbox_server=$$zimbraMailHost$$ auth_name!=migration@csi.it" | chart count over model by auth_name</query>
+          <progress>
+            <condition match="'job.resultCount' &gt; 0">
+              <set token="EAS_show">true</set>
+            </condition>
+            <condition>
+              <unset token="EAS_show"></unset>
+            </condition>
+          </progress>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </table>
+      <table depends="$EAS_show$">
+        <title>EAS Access by IP</title>
+        <search base="soap">
+          <query>map search="search earliest=-60m@m latest=@m index=mailbox process=sync mailbox_mid=$$zimbraMailboxId$$ mbox_server=$$zimbraMailHost$$ auth_name!=migration@csi.it" |
+                     chart count over src_ip by auth_name | iplocation src_ip lang=it
+                     | eval Country=if(isnull(Country),"CED",Country." ".Region), src_ip=Country." - ".src_ip
+                     | fields - City - Country - Region - lat - lon</query>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </table>
+      <table id="eas_blocked" depends="$EAS_show$,$EAS_blocked_show$">
+        <title>EAS Blocked devices</title>
+        <search>
+          <query>index=mailbox sourcetype=zimbra:easlog action="Blocked looping device" authz_name=$mbox$ | table _time src_ip device_os device_id</query>
+          <earliest>-60m@m</earliest>
+          <latest>@m</latest>
+          <progress>
+            <condition match="'job.resultCount' &gt; 0">
+              <set token="EAS_blocked_show">true</set>
+            </condition>
+            <condition>
+              <unset token="EAS_blocked_show"></unset>
+            </condition>
+          </progress>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </table>
+    </panel>
+  </row>
+  <row depends="$mbox$" rejects="$showSpinner$,$exists$">
+    <panel>
+      <html>
+      <p>
+          <code>$mbox$</code> is not a Zimbra Account.</p>
+    </html>
+    </panel>
+  </row>
+</form>

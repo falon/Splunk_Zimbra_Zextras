@@ -1,0 +1,119 @@
+<form version="1.1">
+  <label>Mailbox Authentication Geo Statistics</label>
+  <search id="auth">
+    <query>index=mailbox (process=mailbox OR process=audit) module=ZxAuth operation=authentication-service login=$statuslogin$ service=$service$ | fields error, src_ip, auth_name</query>
+    <earliest>$interval.earliest$</earliest>
+    <latest>$interval.latest$</latest>
+    <sampleRatio>1</sampleRatio>
+  </search>
+  <fieldset submitButton="false">
+    <input type="dropdown" token="service">
+      <label>Service</label>
+      <fieldForLabel>service</fieldForLabel>
+      <fieldForValue>service</fieldForValue>
+      <search>
+        <query>index=mailbox (process=mailbox OR process=audit) module=ZxAuth operation=authentication-service service=* | fields service | dedup service</query>
+        <earliest>-4h@m</earliest>
+        <latest>now</latest>
+      </search>
+      <change>
+        <unset token="country"></unset>
+      </change>
+    </input>
+    <input type="radio" token="statuslogin">
+      <label>Error</label>
+      <choice value="failed">Auth Errors</choice>
+      <choice value="successful">Auth Successful</choice>
+      <change>
+        <condition value="successful">
+          <set token="color">118832</set>
+          <unset token="country"></unset>
+        </condition>
+        <condition>
+          <set token="color">d41f1f</set>
+          <unset token="country"></unset>
+        </condition>
+      </change>
+    </input>
+    <input type="dropdown" token="metric">
+      <label>Metrics</label>
+      <!-- number of connections -->
+      <choice value="sum(count) AS count">by Conn</choice>
+      <!-- number of distinct ips -->
+      <choice value="distinct_count(src_ip) as count">by src_ip</choice>
+      <!-- number of distinct auth_name -->
+      <choice value="count(auth_name) as count">by auth_name</choice>
+      <change>
+        <eval token="drill">if($label$=="by Conn","",$label$)</eval>
+        <eval token="title">case($label$=="by Conn","connections",$label$=="by src_ip","distinct ips",$label$=="by auth_name","distinct accounts",true(),"unexpected, you shouldn't see this"</eval>
+        <unset token="country"></unset>
+      </change>
+    </input>
+    <input type="time" token="interval">
+      <label>Interval</label>
+      <default>
+        <earliest>-1d@d</earliest>
+        <latest>@d</latest>
+      </default>
+      <change>
+        <unset token="country"></unset>
+      </change>
+    </input>
+  </fieldset>
+  <row depends="$service$,$statuslogin$,$metric$">
+    <panel>
+      <map>
+        <title>Number of $title$</title>
+        <search base="auth">
+          <query>stats count by  src_ip auth_name | iplocation lang=en src_ip | stats $metric$ by Country | geom geo_countries allFeatures=True featureIdField=Country</query>
+        </search>
+        <option name="drilldown">all</option>
+        <option name="height">1200</option>
+        <option name="mapping.choroplethLayer.colorBins">9</option>
+        <option name="mapping.choroplethLayer.colorMode">auto</option>
+        <option name="mapping.choroplethLayer.maximumColor">0x$color$</option>
+        <option name="mapping.choroplethLayer.minimumColor">0x62b3b2</option>
+        <option name="mapping.choroplethLayer.neutralPoint">1000</option>
+        <option name="mapping.choroplethLayer.shapeOpacity">0.75</option>
+        <option name="mapping.choroplethLayer.showBorder">1</option>
+        <option name="mapping.data.maxClusters">100</option>
+        <option name="mapping.legend.placement">bottomright</option>
+        <option name="mapping.map.center">(42.81,7.29)</option>
+        <option name="mapping.map.panning">1</option>
+        <option name="mapping.map.scrollZoom">0</option>
+        <option name="mapping.map.zoom">3</option>
+        <option name="mapping.markerLayer.markerMaxSize">50</option>
+        <option name="mapping.markerLayer.markerMinSize">10</option>
+        <option name="mapping.markerLayer.markerOpacity">0.8</option>
+        <option name="mapping.showTiles">1</option>
+        <option name="mapping.tileLayer.maxZoom">19</option>
+        <option name="mapping.tileLayer.minZoom">0</option>
+        <option name="mapping.tileLayer.tileOpacity">1</option>
+        <option name="mapping.tileLayer.url">http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png</option>
+        <option name="mapping.type">choropleth</option>
+        <option name="refresh.display">none</option>
+        <option name="trellis.enabled">0</option>
+        <option name="trellis.scales.shared">1</option>
+        <option name="trellis.size">medium</option>
+        <drilldown>
+          <set token="country">$click.value2$</set>
+        </drilldown>
+      </map>
+    </panel>
+    <panel depends="$country$,$drill$">
+      <title>$country$ Connections Statistics $drill$</title>
+      <map>
+        <search base="auth">
+          <query>stats count by  src_ip auth_name  | iplocation lang=en src_ip | where Country=="$country$" | geostats globallimit=1000  sum(count) as count $drill$</query>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="height">700</option>
+        <option name="mapping.map.center">(43.99,5.64)</option>
+        <option name="mapping.map.zoom">6</option>
+        <option name="mapping.tileLayer.maxZoom">19</option>
+        <option name="mapping.tileLayer.url">http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png</option>
+        <option name="mapping.type">marker</option>
+      </map>
+    </panel>
+  </row>
+</form>

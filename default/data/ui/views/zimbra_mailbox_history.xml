@@ -1,0 +1,81 @@
+<form version="1.1">
+  <label>Mailbox History</label>
+  <description>All account operation</description>
+  <init>
+    <set token="refine"></set>
+  </init>
+  <fieldset submitButton="false">
+    <input type="time" token="interval">
+      <label>Interval</label>
+      <default>
+        <earliest>-60m@m</earliest>
+        <latest>now</latest>
+      </default>
+      <change>
+        <set token="refine"></set>
+        <unset token="event"></unset>
+      </change>
+    </input>
+    <input type="text" token="account">
+      <label>account</label>
+      <change>
+        <set token="refine"></set>
+        <unset token="event"></unset>
+      </change>
+    </input>
+    <input type="multiselect" token="component">
+      <label>component</label>
+      <choice value="*">ALL</choice>
+      <delimiter> OR </delimiter>
+      <fieldForLabel>component</fieldForLabel>
+      <fieldForValue>component</fieldForValue>
+      <search>
+        <query>index=mailbox authz_name=$account$ component=*
+| dedup component</query>
+        <earliest>-60m@m</earliest>
+        <latest>now</latest>
+      </search>
+      <default>*</default>
+      <valuePrefix>component="</valuePrefix>
+      <valueSuffix>"</valueSuffix>
+      <initialValue>*</initialValue>
+      <change>
+        <set token="refine"></set>
+        <unset token="event"></unset>
+      </change>
+    </input>
+  </fieldset>
+  <row depends="$event$">
+    <panel>
+      <html>
+      <p>$event$</p>
+    </html>
+    </panel>
+  </row>
+  <row depends="$account$">
+    <panel>
+      <title>History $refine$</title>
+      <table>
+        <title>Click on action for full event detail.</title>
+        <search>
+          <query>index=mailbox authz_name=$account$ action=* $component$ $refine$ | table _time src_ip process component log_level action _raw</query>
+          <earliest>$interval.earliest$</earliest>
+          <latest>$interval.latest$</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="count">20</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">cell</option>
+        <option name="percentagesRow">false</option>
+        <option name="rowNumbers">false</option>
+        <option name="totalsRow">false</option>
+        <option name="wrap">true</option>
+        <fields>["_time","src_ip","process","component","log_level","action"]</fields>
+        <drilldown>
+          <eval token="refine">case('click.name2'=="component" OR 'click.name2'=="process" OR 'click.name2'=="src_ip","| where ".$click.name2$."==\"".$click.value2$."\"",$click.name2$=="action",$refine$,true(),"")</eval>
+          <eval token="event">if($click.name2$=="action",$row._raw$,null())</eval>
+        </drilldown>
+      </table>
+    </panel>
+  </row>
+</form>

@@ -1,0 +1,251 @@
+<form version="1.1">
+  <init>
+    <unset token="overall"></unset>
+  </init>
+  <label>Mailbox operation center</label>
+  <description>Welcome on Operation on Mailboxes! [sorry, graphical interface with some debug info for Splunk Support help]. Please, refresh the browser when you change the Target.</description>
+  <fieldset submitButton="false">
+    <input type="checkbox" token="help">
+      <change>
+        <condition>
+          <unset token="mail_ids"></unset>
+        </condition>
+      </change>
+      <label>Help</label>
+      <choice value="true">help</choice>
+    </input>
+    <input type="checkbox" token="overall">
+      <label>Overall view</label>
+      <choice value="true">Overall actions</choice>
+      <delimiter> </delimiter>
+      <change>
+        <unset token="mbox"></unset>
+      </change>
+    </input>
+    <input type="dropdown" token="target">
+      <change>
+        <condition value="folder">
+          <set token="target_desc">$label$</set>
+          <unset token="mail_ids"></unset>
+          <set token="myfields">
+            <![CDATA[["_time","auth_name","interface","action","orig_folder","folder","nfolder"]]]>
+          </set>
+        </condition>
+        <condition value="mail">
+          <set token="target_desc">$label$</set>
+          <unset token="mail_ids"></unset>
+          <set token="myfields">
+            <![CDATA[["_time","auth_name","authz_name","interface","action","folder","nmail"]]]>
+          </set>
+        </condition>
+      </change>
+      <label>Target</label>
+      <choice value="mail">Messages</choice>
+      <choice value="folder">Folders</choice>
+      <default>mail</default>
+    </input>
+    <input type="dropdown" token="op_type">
+      <change>
+        <unset token="mail_ids"></unset>
+        <eval token="addacct">if('value'=="Adding","| lookup acctlookup account_id as target_account_id OUTPUT account_name as authz_name", "")</eval>
+      </change>
+      <label>Action</label>
+      <choice value="moving">Move</choice>
+      <choice value="copying">Web Copy</choice>
+      <choice value="Performing IMAP copy">IMAP Copy</choice>
+      <choice value="Deleting">Delete</choice>
+      <choice value="Adding">Append</choice>
+      <default>moving</default>
+    </input>
+    <input type="text" token="mbox">
+      <change>
+        <condition>
+          <unset token="mail_ids"></unset>
+        </condition>
+      </change>
+      <label>Mailbox name</label>
+    </input>
+    <input type="time" token="interval">
+      <label></label>
+      <default>
+        <earliest>-4h@m</earliest>
+        <latest>now</latest>
+      </default>
+      <change>
+        <unset token="mail_ids"></unset>
+      </change>
+    </input>
+  </fieldset>
+  <row depends="$help$">
+    <panel>
+      <html>
+      <h1>Help</h1>
+      <p>
+          <b>Please, refresh the browser when you change the Target.</b>
+        </p>
+      <ul>
+        <li>
+            <code>auth_name</code> is the <b>Authenticated name</b>, in other hands who performs the operation.</li>
+        <li>
+            <code>authz_name&gt;</code> is the <b>Authorized name</b>, in other hands where the operation has been performed.</li>
+        <li>
+            Common <code>interface</code>s can be:
+          <ul>
+            <li>
+                <code>WEB</code> is webmail</li>
+            <li>
+                <code>IMAP</code> is IMAP protocol</li>
+            <li>
+                <code>LMTP</code> is LMTP protocol (mail delivered)</li>
+          </ul>
+          </li>
+        <li>
+            <code>action</code> is the operation, in particular:
+          <ul>
+            <li>
+                <code>Deleting Message</code>: the mail has permanently deleted. In raw log you will find also <i>redundant</i> events about deleting (Virtual)Conversations.</li>
+            <li>
+                <code>Deleting Folder</code>: the Folder has permanently deleted. In raw log you will find also <i>redundant</i> events about deleting paths and filters.</li>
+            <li>
+                <code>moving Folder</code>: the Foder has been moved.</li>
+            <li>
+                <code>Adding Message</code>: the mail has been added (ie: received by LMTP).</li>
+            <li>
+                <code>Moving Conversation</code>: a full conversation has moved.</li>
+            <li>
+                <code>Moving VirtualConversation</code>: a piece of conversation has been moved.</li>
+            <li>
+                <code>Moving Message</code>: a single message in <i>message view</i> has been moved.</li>
+          </ul>
+          </li>
+      </ul>
+      <p>Remember that:</p>
+      <ul>
+        <li>
+            <code>Rename Folder</code> is not logged.</li>
+        <li>Messages IMAP move is not possible. You will find copy and delete. Instead, logs show folder IMAP move.</li>
+        <li>In IMAP operation, the <code>authz_name</code>is not the mailbox where you perform the operation and it's usually identical to the <code>auth_name</code>. This affects in particular shared folder analysis.</li>
+        <li>In some IMAP cross-server operations, such as add a message on a shared folder, a web client api is called. So you don't see an IMAP Adding Message, you see a WEB Adding Message.</li>
+        <li>Moving/copying cross-server are logged as <i>Adding</i>.</li>
+        <li>IMAP CREATE folder is not logged. From WEB, a <code>CreateFolderRequest</code> is logged, but without the folder name!</li>
+        <li>Logs don't shown the folder the mail has been moved from.</li>
+      </ul>
+    </html>
+    </panel>
+  </row>
+  <row depends="$overall$">
+    <panel>
+      <chart>
+        <title>Overall actions in mailboxes</title>
+        <search>
+          <query>index=mailbox action!="Adding Message" (mail_id=* OR folder_id=*) | chart count(action) as calls over action</query>
+          <earliest>$interval.earliest$</earliest>
+          <latest>$interval.latest$</latest>
+        </search>
+        <option name="charting.chart">pie</option>
+        <option name="charting.chart.sliceCollapsingThreshold">0</option>
+        <option name="charting.drilldown">all</option>
+        <option name="height">400</option>
+        <option name="refresh.display">progressbar</option>
+        <drilldown>
+          <set token="action">$click.value$</set>
+        </drilldown>
+      </chart>
+    </panel>
+    <panel depends="$action$">
+      <chart>
+        <search>
+          <query>index=mailbox action="$action$" (mail_id=* OR folder_id=*) | chart count(action) as calls by authz_name where authz_name in top50</query>
+          <earliest>$interval.earliest$</earliest>
+          <latest>$interval.latest$</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="charting.chart">pie</option>
+        <option name="charting.chart.sliceCollapsingThreshold">0</option>
+        <option name="charting.drilldown">all</option>
+        <option name="height">400</option>
+        <option name="refresh.display">progressbar</option>
+        <drilldown>
+          <unset token="action"></unset>
+        </drilldown>
+      </chart>
+    </panel>
+  </row>
+  <row rejects="$overall$" depends="$target$,$mbox$">
+    <panel>
+      <title>$myfields$</title>
+      <table>
+        <title>$target_desc$ Operation</title>
+        <search>
+          <query>| makeresults | eval mailbox_name="$mbox$" | lookup midlookup mailbox_name as mailbox_name OUTPUT mbox_server mailbox_id | map search="search index=mailbox mailbox_mid=$$mailbox_id$$ mbox_server=$$mbox_server$$ action=\"$op_type$*\" $target$_id=*"
+            | eval n$target$=mvcount($target$_id), interface=case(like(thread_name,"qtp%"),"WEB",like(thread_name,"LmtpServer-%"),"LMTP",like(thread_name,"ImapServer-%"),"IMAP",true(),thread_name)
+            $addacct$
+            | table _time auth_name authz_name interface thread_name action orig_folder folder n$target$ $target$_id mailbox_mid mbox_server</query>
+          <earliest>$interval.earliest$</earliest>
+          <latest>$interval.latest$</latest>
+        </search>
+        <option name="refresh.display">progressbar</option>
+        <format type="color" field="folder">
+          <colorPalette type="map">{"Trash":#D41F1F}</colorPalette>
+        </format>
+        <fields>$myfields$</fields>
+        <drilldown>
+          <condition>
+            <eval token="mail_ids">if($click.name2$=="nmail",$row.mail_id$,null())</eval>
+            <set token="mid">$row.mailbox_mid$</set>
+            <set token="mailserver">$row.mbox_server$</set>
+          </condition>
+        </drilldown>
+      </table>
+    </panel>
+  </row>
+  <row rejects="$overall$" depends="$target$,$mbox$,$show_nomid$">
+    <panel>
+      <title>$myfields$</title>
+      <table>
+        <title>$target_desc$ Operation *Special no mid op* - the auth_name could be wrong</title>
+        <search>
+          <query>index=mailbox NOT mailbox_mid=* authz_name="$mbox$" action="$op_type$*" $target$_id=*
+            | eval n$target$=mvcount($target$_id), interface=case(like(thread_name,"qtp%"),"WEB",like(thread_name,"LmtpServer-%"),"LMTP",like(thread_name,"ImapServer-%"),"IMAP",true(),thread_name)
+            | table _time auth_name authz_name interface thread_name action orig_folder folder n$target$ $target$_id mbox_server</query>
+          <earliest>$interval.earliest$</earliest>
+          <latest>$interval.latest$</latest>
+          <progress>
+            <condition match="'job.resultCount'&gt; 0">
+              <set token="show_nomid">true</set>
+            </condition>
+            <condition>
+              <unset token="show_nomid"></unset>
+            </condition>
+          </progress>
+        </search>
+        <option name="refresh.display">progressbar</option>
+        <option name="drilldown">none</option>
+        <format type="color" field="folder">
+          <colorPalette type="map">{"Trash":#D41F1F}</colorPalette>
+        </format>
+        <fields>$myfields$</fields>
+      </table>
+    </panel>
+  </row>
+  <row depends="$mail_ids$">
+    <panel>
+      <table>
+        <title>Mail History</title>
+        <search>
+          <query>index=mailbox mbox_server=$mailserver$ mailbox_mid=$mid$ action=* mail_id IN ($mail_ids$)
+            | eval interface=case(like(thread_name,"qtp%"),"WEB",like(thread_name,"LmtpServer-%"),"LMTP",like(thread_name,"ImapServer-%"),"IMAP",true(),thread_name)
+            | sort _time
+            | table _time auth_name authz_name interface action folder mail_id</query>
+          <earliest>$interval.earliest$</earliest>
+          <latest>$interval.latest$</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+        <format type="color" field="folder">
+          <colorPalette type="map">{"Trash":#D41F1F}</colorPalette>
+        </format>
+      </table>
+    </panel>
+  </row>
+</form>

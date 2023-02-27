@@ -1,0 +1,389 @@
+<form version="1.1" script="table_multivalue_highlight_sent.js">
+  <label>Postfix Search</label>
+  <description>Search email flow by from or recipients.</description>
+  <fieldset submitButton="false" autoRun="false">
+    <input type="time" token="interval">
+      <label>Interval</label>
+      <default>
+        <earliest>-4h@m</earliest>
+        <latest>now</latest>
+      </default>
+      <change>
+        <unset token="messageID"></unset>
+      </change>
+    </input>
+    <input type="text" token="from">
+      <label>From</label>
+      <default></default>
+      <change>
+        <condition match="match('to',&quot;\\*&quot;) OR match('from',&quot;\\*&quot;)">
+          <unset token="whatSearch"></unset>
+          <unset token="whatSearch2"></unset>
+          <unset token="onlyThisTo"></unset>
+          <set token="wrongValue">true</set>
+          <unset token="messageID"></unset>
+        </condition>
+        <condition match="len('to')&gt;0 AND len('from')&gt;0">
+          <set token="whatSearch">(from=$from|s$ OR to=$to|s$)</set>
+          <set token="whatSearch2">(from=$from|s$ $logic_op$ to=$to|s$)</set>
+          <set token="onlyThisTo"></set>
+          <unset token="wrongValue"></unset>
+          <unset token="messageID"></unset>
+        </condition>
+        <condition match="len('to')&gt;0 AND len('from')==0">
+          <set token="whatSearch">to=$to|s$</set>
+          <set token="whatSearch2">to=$to|s$</set>
+          <set token="onlyThisTo"></set>
+          <unset token="wrongValue"></unset>
+          <unset token="messageID"></unset>
+        </condition>
+        <condition match="len('from')&gt;0 AND len('to')==0">
+          <set token="whatSearch">from=$from|s$</set>
+          <set token="whatSearch2">from=$from|s$</set>
+          <set token="onlyThisTo"></set>
+          <unset token="wrongValue"></unset>
+          <unset token="messageID"></unset>
+        </condition>
+      </change>
+    </input>
+    <input type="dropdown" token="logic_op">
+      <label></label>
+      <choice value="OR">OR</choice>
+      <choice value="AND">AND</choice>
+      <default>OR</default>
+      <change>
+        <condition match="match('to',&quot;\\*&quot;) OR match('from',&quot;\\*&quot;)">
+          <unset token="whatSearch"></unset>
+          <unset token="whatSearch2"></unset>
+          <unset token="onlyThisTo"></unset>
+          <set token="wrongValue">true</set>
+          <unset token="messageID"></unset>
+        </condition>
+        <condition match="len('to')&gt;0 AND len('from')&gt;0">
+          <set token="whatSearch">(from=$from|s$ OR to=$to|s$)</set>
+          <set token="whatSearch2">(from=$from|s$ $logic_op$ to=$to|s$)</set>
+          <set token="onlyThisTo"></set>
+          <unset token="wrongValue"></unset>
+          <unset token="messageID"></unset>
+        </condition>
+        <condition match="len('to')&gt;0 AND len('from')==0">
+          <set token="whatSearch">to=$to|s$</set>
+          <set token="whatSearch2">to=$to|s$</set>
+          <set token="onlyThisTo"></set>
+          <unset token="wrongValue"></unset>
+          <unset token="messageID"></unset>
+        </condition>
+        <condition match="len('from')&gt;0 AND len('to')==0">
+          <set token="whatSearch">from=$from|s$</set>
+          <set token="whatSearch2">from=$from|s$</set>
+          <set token="onlyThisTo"></set>
+          <unset token="wrongValue"></unset>
+          <unset token="messageID"></unset>
+        </condition>
+      </change>
+    </input>
+    <input type="text" token="to">
+      <label>To</label>
+      <change>
+        <condition match="match('to',&quot;\\*&quot;) OR match('from',&quot;\\*&quot;)">
+          <unset token="whatSearch"></unset>
+          <unset token="whatSearch2"></unset>
+          <unset token="onlyThisTo"></unset>
+          <set token="wrongValue">true</set>
+          <unset token="messageID"></unset>
+        </condition>
+        <condition match="len('to')&gt;0 AND len('from')&gt;0">
+          <set token="whatSearch">(from=$from|s$ OR to=$to|s$)</set>
+          <set token="whatSearch2">(from=$from|s$ $logic_op$ to=$to|s$)</set>
+          <set token="onlyThisTo"></set>
+          <unset token="wrongValue"></unset>
+          <unset token="messageID"></unset>
+        </condition>
+        <condition match="len('to')&gt;0 AND len('from')==0">
+          <set token="whatSearch">to=$to|s$</set>
+          <set token="whatSearch2">to=$to|s$</set>
+          <set token="onlyThisTo"></set>
+          <unset token="wrongValue"></unset>
+        </condition>
+        <condition match="len('from')&gt;0 AND len('to')==0">
+          <set token="whatSearch">from=$from|s$</set>
+          <set token="whatSearch2">from=$from|s$</set>
+          <set token="onlyThisTo"></set>
+          <unset token="wrongValue"></unset>
+          <unset token="messageID"></unset>
+        </condition>
+      </change>
+    </input>
+  </fieldset>
+  <row depends="$FALSE$">
+    <panel>
+      <html>
+        <style>
+          #detailClientPanel{
+            width: 500px !important;
+            height: auto !important;
+          }
+          .highlight-green{
+                background: green;
+                color: white;
+          }
+        </style>
+      </html>
+    </panel>
+  </row>
+  <row rejects="$whatSearch$" depends="$wrongValue$">
+    <panel>
+      <html>
+      <p>Wilcards are not allowed, sorry.</p>
+    </html>
+    </panel>
+  </row>
+  <row rejects="$whatSearch$,$wrongValue$">
+    <panel>
+      <html>
+      <h2>Just few notes.</h2>
+      <p>The search starts when you press <code>
+            <b>Enter</b>
+          </code> in text input, or when you change other options.<br/>
+         In order to start the search when you would like, we can suggest the following:</p>
+      <ul>
+        <li>Change if needed the time <code>Interval</code>.</li>
+        <li>If you need to change the logic:</li>
+        <ul>
+          <li>type the <code>From</code> and <code>To</code> email. <b>Don't press <code>Enter</code>
+              </b>.</li>
+          <li>Change the logic <code>OR</code> or <code>AND</code>. The search starts at this moment.</li>
+        </ul>
+        <li>If you don't need to change the logic:</li>
+        <ul>
+          <li>type the <code>From</code> and/or <code>To</code> email. <b>Press <code>Enter</code>
+              </b> when you type all address needed.</li>
+        </ul>
+      </ul>
+      <p>Other things to keep in mind:</p>
+      <ul>
+      <li>Returned timestamp is the starting time of mail transaction. Select an interval which include the time the mail was sent to the server until to the time the mail has been delivered.</li>
+      <li>If you want all mail from a sender, keep the field <code>To</code> empty.</li>
+      <li>If you want all mail received by a recipient, keep the field <code>From</code> empty.</li>
+      <li>Details on deferred <b>are not included until the end of queue lifetime occurs</b>. When the mail is still in queue you can see a partial result without the <code>sent</code> action value.</li>
+      <li>Click on <code>deferred</code> <i>action</i> value to see details on deferred recipients.</li>
+      <li>Click on <code>relay to store*</code> <i>relay</i> value to see mailbox actions.</li>
+      <li>If you click on <code>recipient</code> you will see only that recipient detail in the transactions.</li>
+      <li>In <i>mailbox logs</i>, when you send a message from webmail you will see the <b>action</b> <code>Sending message to MTA</code>. The <code>replyType</code> could be:
+          <ul>
+            <li>
+                <CODE>reply</CODE>, if the sender identity matches the <i>From</i> of the mail.</li>
+            <li>
+                <code>forward</code>, when you forward a mail <b>and</b> with an identity which doesn't match the <i>From</i> of the mail. Otherwise you will see <CODE>reply</CODE>, even if you perform a real forward.</li>
+          </ul>
+          </li>
+      </ul>
+    </html>
+    </panel>
+  </row>
+  <row depends="$whatSearch$">
+    <panel depends="$client$" id="detailClientPanel">
+      <table>
+        <search>
+          <query>| makeresults | eval orig_src_ip="$client$" | spamhaus dataset="zen" orig_src_ip | iplocation orig_src_ip lang=it | lookup spamhaus_status_codes.csv status | eval "Additional Info on $client_host$"=if(isnull(City), "Client IP: " . orig_src_ip . "\0 Spamhaus dataset \"" . 'spamhaus_dataset' . "\": " . 'status_description', "Client IP: " . orig_src_ip . "\0 Città: " . City .
+                            "\0 Area: " . 'Region' .
+                            "\0 Nazione: " . 'Country' .
+                            "\0 Spamhaus dataset \"" . 'spamhaus_dataset' . "\": " . 'status_description')
+| fields "Additional Info on $client_host$" | makemv delim="\0" allowempty=true "Additional Info on $client_host$"
+| table "Additional Info on $client_host$"</query>
+          <earliest>$earliest$</earliest>
+          <latest>$latest$</latest>
+        </search>
+        <option name="refresh.display">progressbar</option>
+        <drilldown>
+          <condition>
+            <unset token="client"></unset>
+          </condition>
+        </drilldown>
+      </table>
+    </panel>
+    <panel depends="$client$">
+      <title>$client$ statistics "From" based</title>
+      <chart>
+        <title>Last hour</title>
+        <search>
+          <query>sourcetype="zimbra:amavis" src_ip=$client$ OR internal_src_ip=$client$ | chart count over src_user_domain by action</query>
+          <earliest>-60m@m</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="charting.axisTitleX.visibility">collapsed</option>
+        <option name="charting.axisTitleY.visibility">collapsed</option>
+        <option name="charting.axisTitleY2.visibility">collapsed</option>
+        <option name="charting.chart">pie</option>
+        <option name="charting.legend.placement">none</option>
+        <option name="height">800</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="trellis.enabled">1</option>
+        <option name="trellis.size">medium</option>
+        <option name="trellis.splitBy">action</option>
+        <drilldown>
+          <condition>
+            <unset token="client"></unset>
+          </condition>
+        </drilldown>
+      </chart>
+    </panel>
+    <panel>
+      <title>Email accepted $whatSearch2$</title>
+      <html>
+        <style>
+          .highlight-green{
+            background: green;
+            color: white;
+        </style>
+      </html>
+      <table id="highlight_sent">
+        <search>
+          <query>[search $whatSearch$ internal_message_id=* src_type=outbound | fields mta_server internal_message_id] NOT "filter: RCPT from"
+            | eval
+                   hop=case(dest_type=="local" AND dest_port IN(10024,10026),"Amavis",
+                            dest_type=="local" AND dest_port==10025,"OpenDKIM",
+                            dest_type=="zimbra", dest_type,
+                            true(),dest_host."[".dest_ip."]:".dest_port
+                           ),
+                  relay=if(process!="amavis", action." to ".hop, ""),
+                  action=if(dest_type=="local" AND action=="sent", "",action)
+            $onlyThisTo$
+            | transaction  maxpause=3h maxspan=6d startswith="postfix_process=*smtpd src_host=* internal_message_id=* NOT protocol=*" endswith=removed mta_server internal_message_id
+            | transaction startswith="postfix_process=smtpd src_host=* internal_message_id=* $whatSearch2$ NOT protocol=*" maxpause=1m maxspan=1m  mta_server message_id
+            | eval delay=max(delay), client_ip=if(isnotnull(internal_src_ip),internal_src_ip,orig_src_ip)
+            | lookup dnslookup clientip as client_ip OUTPUT clienthost as client
+            | eval client=if(isnull(client),client_ip,client)
+            | eval delay_pristine = delay
+            | table _time client, client_ip, from recipient action Hits relay delay delay_pristine status_recipient status_message status_full message_id
+            | fieldformat delay=if(delay&lt;60000, delay/1000 . "\"", tostring(delay/1000, "duration"))</query>
+          <earliest>$interval.earliest$</earliest>
+          <latest>$interval.latest$</latest>
+          <sampleRatio>1</sampleRatio>
+          <progress>
+            <eval token="showWarnRec">if(len('onlyThisTo')&gt;0,true(),null())</eval>
+            <unset token="mailbox_detail"></unset>
+          </progress>
+        </search>
+        <option name="drilldown">cell</option>
+        <option name="refresh.display">progressbar</option>
+        <fields>["_time","client","from","recipient","action","Hits","relay","delay"]</fields>
+        <drilldown>
+          <condition field="action">
+            <unset token="client"></unset>
+            <unset token="mailbox_detail"></unset>
+            <unset token="messageID"></unset>
+            <set token="thisAction">$click.value2$</set>
+            <eval token="status_rcpt">if($click.value2$ == "deferred" OR $click.value2$ == "reject" OR $click.value2$ == "bounced",$row.status_recipient$, null())</eval>
+            <eval token="status_other">case($click.value2$ == "expired",mvfilter(NOT match($row.status_full$,"^250")), isnull($status_rcpt$) AND ($click.value2$ == "deferred" OR $click.value2$ == "reject" OR $click.value2$ == "bounced"),mvfilter(NOT match($row.status_full$,"^250")),true(), null())</eval>
+            <set token="status_why">$row.status_message$</set>
+          </condition>
+          <condition field="recipient">
+            <unset token="client"></unset>
+            <unset token="status_rcpt"></unset>
+            <unset token="status_other"></unset>
+            <unset token="messageID"></unset>
+            <set token="onlyThisTo">| where to=="$click.value2$" OR postfix_process=="qmgr" OR isnotnull(src_ip) OR isnotnull(message_id)</set>
+            <eval token="whatSearch">replace('whatSearch',"to=[^@]+@[^)]+","to=\"".$click.value2$."\"")</eval>
+            <eval token="whatSearch2">replace('whatSearch2',"to=[^@]+@[^)]+","to=\"".$click.value2$."\"")</eval>
+            <set token="mailbox_detail">$click.value2$</set>
+          </condition>
+          <condition field="from">
+            <unset token="client"></unset>
+            <set token="onlyThisTo"></set>
+            <!-- <set token="whatSearch">from="$click.value2$"</set>
+            <set token="whatSearch2">from="$click.value2$"</set> -->
+            <unset token="messageID"></unset>
+            <unset token="mailbox_detail"></unset>
+          </condition>
+          <condition field="client">
+            <set token="client">$row.client_ip$</set>
+            <set token="client_host">$click.value2$</set>
+            <unset token="messageID"></unset>
+            <unset token="mailbox_detail"></unset>
+          </condition>
+          <condition field="relay">
+            <eval token="messageID">if(match($click.value2$, "^sent to store"),$row.message_id$,null())</eval>
+            <!-- Splunk doesn't allow to insert an external token in <earliest> or <latest> input value, such as <earliest>$fromtime$</earliest>. I have to define the default input token value here: -->
+            <eval token="form.newinterval.earliest">$click.value$-10</eval>
+            <eval token="form.newinterval.latest">$click.value$+10+$row.delay$/1000</eval>
+            <unset token="mailbox_detail"></unset>
+          </condition>
+          <condition>
+            <unset token="status_rcpt"></unset>
+            <unset token="status_other"></unset>
+            <unset token="client"></unset>
+            <unset token="messageID"></unset>
+            <unset token="mailbox_detail"></unset>
+            <set token="onlyThisTo"></set>
+          </condition>
+        </drilldown>
+      </table>
+    </panel>
+    <panel depends="$mailbox_detail$,$showWarnRec$">
+      <table>
+        <title>Info about $mailbox_detail$ on Zimbra</title>
+        <search>
+          <query>| makeresults | eval authz_name="$mailbox_detail$" | name2info field=authz_name | untable _time authz_name zimbra* | fields - _time | rename authz_name as mailbox, zimbra* as value*</query>
+          <earliest>$interval.earliest$</earliest>
+          <latest>$interval.latest$</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </table>
+    </panel>
+  </row>
+  <row depends="$showWarnRec$">
+    <panel>
+      <html>
+      <p/>When you click on a <b>recipient</b> of a previous search result, you will see only the 
+      recipient that you click and not the others.
+    </html>
+    </panel>
+  </row>
+  <row depends="$status_rcpt$">
+    <panel>
+      <title>Detail for a trouble in $thisAction$ recipients</title>
+      <html>
+      <table style="border: solid 2px #060; border-spacing: 10px;">
+          <tr>
+            <th style="border:solid 2px #060; padding: 5px;border-spacing: 10px;">Recipient</th>
+            <th style="border:solid 2px #060; padding: 5px;border-spacing: 10px;">Reason</th>
+          </tr>
+          <tr>
+            <td style="border:solid 2px #060; padding: 5px;border-spacing: 10px;">$status_rcpt$</td>
+            <td style="border:solid 2px #060; padding: 5px;border-spacing: 10px;">$status_why$</td>
+          </tr>
+        </table>
+    </html>
+    </panel>
+  </row>
+  <row depends="$status_other$">
+    <panel>
+      <title>Detail on $thisAction$</title>
+      <html>
+        <p>$status_other$</p>
+    </html>
+    </panel>
+  </row>
+  <row depends="$messageID$">
+    <panel>
+      <title>Mailbox actions</title>
+      <input type="time" token="newinterval">
+        <label>Extend time interval</label>
+      </input>
+      <html>
+        <p>Filter tracked actions are <b>Discard</b>. <b>Redirect</b> will be added when BUG <a href="https://bugzilla.zimbra.com/show_bug.cgi?id=109529">109529</a> will have fixed. But you see <b>Redirect</b> by <code>Sending message to MTA</code> <i>action</i> anyway.</p>
+      </html>
+      <table>
+        <search>
+          <query>[search index=mailbox message_id=$messageID$ | transaction index mailbox_mid message_id  | fields index mailbox_mid mail_id | where isnotnull(mail_id)] OR [search index=mailbox message_id=$messageID$ | fields index mailbox_mid message_id] | sort +_time | eval action=if(isnull(action),message, action) | lookup acctlookup account_id as target_account_id OUTPUT account_name as target | table _time src_ip auth_name authz_name thread_name action target folder rtype sender to</query>
+          <earliest>$newinterval.earliest$</earliest>
+          <latest>$newinterval.latest$</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </table>
+    </panel>
+  </row>
+</form>

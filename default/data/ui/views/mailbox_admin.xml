@@ -1,0 +1,99 @@
+<form version="1.1" script="table_multivalue_highlight.js">
+  <label>Mailbox Admin</label>
+  <description>Mailbox Administrative operations</description>
+  <fieldset submitButton="false">
+    <input type="dropdown" token="action">
+      <label>action</label>
+      <choice value="AddDistributionListMember">Add List Member</choice>
+      <choice value="RemoveDistributionListMember">Remove List Member</choice>
+      <choice value="ModifyDistributionList">Mod List</choice>
+      <choice value="CreateCalendarResource">Create Cal Entry</choice>
+      <choice value="ModifyCalendarResource">Mod Cal Entry</choice>
+      <choice value="DelegateAuth">Delegate Auth</choice>
+      <choice value="">Add account (TO DO)</choice>
+      <choice value="DeleteAccount">Remove Account</choice>
+      <choice value="ModifyAccount">Mod Account</choice>
+      <choice value="AddAccountAlias">Add Alias</choice>
+      <choice value="RemoveAccountAlias">Remove Alias</choice>
+      <choice value="ModifyCos">Mod Cos</choice>
+      <change>
+        <condition value="AddDistributionListMember">
+          <set token="fields">members</set>
+          <set token="formatList"></set>
+          <set token="label">$label$</set>
+        </condition>
+        <condition match="match('value',&quot;AccountAlias$&quot;)">
+          <set token="fields">alias</set>
+          <set token="formatList"></set>
+          <set token="label">$label$</set>
+        </condition>
+        <condition value="RemoveDistributionListMember">
+          <set token="fields">member</set>
+          <set token="formatList"></set>
+          <set token="label">$label$</set>
+        </condition>
+        <condition match="$value$ == &quot;ModifyDistributionList&quot; OR $value$ == &quot;CreateCalendarResource&quot; OR $value$ == &quot;ModifyCalendarResource&quot; OR $value$ == &quot;ModifyAccount&quot; OR $value$ == &quot;ModifyCos&quot;">
+          <set token="fields">displayName description zimbra*</set>
+          <set token="formatList">| untable _time field value | transaction mvlist=t _time | table _time field value</set>
+          <set token="label">$label$</set>
+        </condition>
+        <condition>
+          <set token="fields"></set>
+          <set token="formatList"></set>
+          <set token="label">$label$</set>
+        </condition>
+      </change>
+    </input>
+    <input type="text" token="target">
+      <label>Enter the target, if known</label>
+      <default>*</default>
+    </input>
+    <input type="time" token="interval">
+      <label>Interval</label>
+      <default>
+        <earliest>-24h@h</earliest>
+        <latest>now</latest>
+      </default>
+    </input>
+  </fieldset>
+  <row depends="$action$">
+    <panel>
+      <html>
+        <style>
+            .highlight-green{
+                background:green;
+                color: white;
+            }
+            .highlight-red{
+                color:red;
+                font-weight: bold;
+                
+            }
+        </style>
+      </html>
+      <table id="highlight">
+        <title>$label$</title>
+        <search>
+          <query>index=mailbox process=audit component=security action=$action$ target=$target|s$
+                 | fields - zimbra_event_length
+                 | rename user_agent as Agent
+                 | table _time auth_name src_ip target Agent $fields$ $formatList$</query>
+          <earliest>$interval.earliest$</earliest>
+          <latest>$interval.latest$</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="count">20</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">none</option>
+        <option name="percentagesRow">false</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="rowNumbers">false</option>
+        <option name="totalsRow">false</option>
+        <option name="wrap">false</option>
+        <format type="color" field="auth_name">
+          <colorPalette type="map">{"zimbra":#D41F1F}</colorPalette>
+        </format>
+      </table>
+    </panel>
+  </row>
+</form>
