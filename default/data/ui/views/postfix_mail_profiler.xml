@@ -160,7 +160,7 @@
     </input>
     <input type="radio" token="allitem" searchWhenChanged="true" rejects="$showForecast$">
       <label>Summary</label>
-      <choice value="true">Sì</choice>
+      <choice value="true">Yes</choice>
       <choice value="false">No</choice>
       <default>false</default>
       <initialValue>false</initialValue>
@@ -228,7 +228,7 @@
         </search>
         <option name="charting.axisLabelsX.majorLabelStyle.overflowMode">ellipsisNone</option>
         <option name="charting.axisLabelsX.majorLabelStyle.rotation">0</option>
-        <option name="charting.axisTitleX.text">ora del giorno</option>
+        <option name="charting.axisTitleX.text">hour</option>
         <option name="charting.axisTitleX.visibility">visible</option>
         <option name="charting.axisTitleY.visibility">visible</option>
         <option name="charting.axisTitleY2.visibility">visible</option>
@@ -278,7 +278,7 @@
         </search>
         <option name="charting.axisLabelsX.majorLabelStyle.overflowMode">ellipsisNone</option>
         <option name="charting.axisLabelsX.majorLabelStyle.rotation">0</option>
-        <option name="charting.axisTitleX.text">ora del giorno</option>
+        <option name="charting.axisTitleX.text">hour</option>
         <option name="charting.axisTitleX.visibility">visible</option>
         <option name="charting.axisTitleY.visibility">visible</option>
         <option name="charting.axisTitleY2.visibility">visible</option>

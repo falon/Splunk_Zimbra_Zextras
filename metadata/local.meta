@@ -9,7 +9,7 @@ modtime = 1665584092.829169000
 [views/postfix_search]
 owner = admin
 version = 9.0.2
-modtime = 1676461624.005015000
+modtime = 1677666714.591870000
 
 [views/message_size]
 owner = admin
@@ -48,7 +48,7 @@ modtime = 1674722475.418534000
 [views/control_room]
 owner = admin
 version = 9.0.2
-modtime = 1671110110.568826000
+modtime = 1677660404.446004000
 
 [views/eas]
 owner = admin
@@ -189,7 +189,7 @@ modtime = 1674486510.283050000
 
 [views/postfix_mail_profiler]
 version = 9.0.2
-modtime = 1675775771.660609000
+modtime = 1677661967.933899000
 
 [views/zimbra_mailbox_history]
 owner = admin
@@ -226,3 +226,8 @@ modtime = 1677246809.250943000
 [app/install]
 version = 9.0.2
 modtime = 1677247300.638640000
+
+[views/mailbox_calendar]
+owner = admin
+version = 9.0.2
+modtime = 1677655390.403363000

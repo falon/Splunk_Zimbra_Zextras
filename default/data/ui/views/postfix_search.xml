@@ -239,6 +239,10 @@
       </html>
       <table id="highlight_sent">
         <search>
+          <progress>
+            <eval token="showWarnRec">if(len('onlyThisTo')&gt;0,true(),null())</eval>
+            <unset token="mailbox_detail"></unset>
+          </progress>
           <query>[search $whatSearch$ internal_message_id=* src_type=outbound | fields mta_server internal_message_id] NOT "filter: RCPT from"
             | eval
                    hop=case(dest_type=="local" AND dest_port IN(10024,10026),"Amavis",
@@ -246,7 +250,7 @@
                             dest_type=="zimbra", dest_type,
                             true(),dest_host."[".dest_ip."]:".dest_port
                            ),
-                  relay=if(process!="amavis", action." to ".hop, ""),
+                  relay=if(process!="amavis", hop, ""),
                   action=if(dest_type=="local" AND action=="sent", "",action)
             $onlyThisTo$
             | transaction  maxpause=3h maxspan=6d startswith="postfix_process=*smtpd src_host=* internal_message_id=* NOT protocol=*" endswith=removed mta_server internal_message_id
@@ -260,10 +264,6 @@
           <earliest>$interval.earliest$</earliest>
           <latest>$interval.latest$</latest>
           <sampleRatio>1</sampleRatio>
-          <progress>
-            <eval token="showWarnRec">if(len('onlyThisTo')&gt;0,true(),null())</eval>
-            <unset token="mailbox_detail"></unset>
-          </progress>
         </search>
         <option name="drilldown">cell</option>
         <option name="refresh.display">progressbar</option>
@@ -303,7 +303,7 @@
             <unset token="mailbox_detail"></unset>
           </condition>
           <condition field="relay">
-            <eval token="messageID">if(match($click.value2$, "^sent to store"),$row.message_id$,null())</eval>
+            <eval token="messageID">if(match($click.value2$, "^zimbra"),$row.message_id$,null())</eval>
             <!-- Splunk doesn't allow to insert an external token in <earliest> or <latest> input value, such as <earliest>$fromtime$</earliest>. I have to define the default input token value here: -->
             <eval token="form.newinterval.earliest">$click.value$-10</eval>
             <eval token="form.newinterval.latest">$click.value$+10+$row.delay$/1000</eval>

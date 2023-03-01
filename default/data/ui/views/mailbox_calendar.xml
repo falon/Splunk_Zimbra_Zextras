@@ -1,0 +1,41 @@
+<form version="1.1">
+  <label>Calendar</label>
+  <description>Calendar actions and stats.</description>
+  <fieldset submitButton="false">
+    <input type="dropdown" token="by">
+      <label>search by</label>
+      <choice value="cal_subject">Subject</choice>
+      <choice value="auth_name">Login</choice>
+    </input>
+    <input type="text" token="value">
+      <label>Value</label>
+    </input>
+    <input type="time" token="interval">
+      <label>Interval</label>
+      <default>
+        <earliest>-24h@h</earliest>
+        <latest>now</latest>
+      </default>
+    </input>
+  </fieldset>
+  <row depends="$value$,$by$">
+    <panel>
+      <table>
+        <search>
+          <query>[search index=mailbox component=calendar $by$=$value|s$ cal_id=* | fields index component cal_id] | transaction mvlist=t nullstr=" " index component cal_id | table _time auth_name authz_name cal_subject cal_action cal_status cal_notify</query>
+          <earliest>$interval.earliest$</earliest>
+          <latest>$interval.latest$</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="count">20</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">none</option>
+        <option name="percentagesRow">false</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="rowNumbers">false</option>
+        <option name="totalsRow">false</option>
+        <option name="wrap">true</option>
+      </table>
+    </panel>
+  </row>
+</form>
