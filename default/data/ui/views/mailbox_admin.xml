@@ -58,6 +58,7 @@
   </fieldset>
   <row depends="$action$">
     <panel>
+      <title>$label$</title>
       <html>
         <style>
             .highlight-green{
@@ -72,7 +73,6 @@
         </style>
       </html>
       <table id="highlight">
-        <title>$label$</title>
         <search>
           <query>index=mailbox process=audit component=security action=$action$ target=$target|s$
                  | fields - zimbra_event_length
@@ -86,7 +86,6 @@
         <option name="dataOverlayMode">none</option>
         <option name="drilldown">none</option>
         <option name="percentagesRow">false</option>
-        <option name="refresh.display">progressbar</option>
         <option name="rowNumbers">false</option>
         <option name="totalsRow">false</option>
         <option name="wrap">false</option>

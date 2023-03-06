@@ -33,7 +33,7 @@ modtime = 1676476188.156542000
 [views/mailbox_admin]
 owner = admin
 version = 9.0.2
-modtime = 1673344702.067900000
+modtime = 1678103485.833157000
 
 [views/mailbox_access_stats]
 owner = admin
@@ -48,7 +48,7 @@ modtime = 1674722475.418534000
 [views/control_room]
 owner = admin
 version = 9.0.2
-modtime = 1677759081.023797000
+modtime = 1678111033.817259000
 
 [views/eas]
 owner = admin
@@ -231,3 +231,10 @@ modtime = 1677247300.638640000
 owner = admin
 version = 9.0.2
 modtime = 1677655390.403363000
+
+[views/mailbox_teams]
+access = read : [ admin, user-posta, user-soc ], write : [ admin ]
+export = none
+owner = admin
+version = 9.0.2
+modtime = 1678103388.075633000

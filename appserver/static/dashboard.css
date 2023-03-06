@@ -1,0 +1,8 @@
+.dashboard-panel h2{
+	background: coral !important;
+        color:white !important;
+        text-align: center !important;
+        font-weight: bold !important;
+        border-top-right-radius: 15px;
+        border-top-left-radius: 15px;
+}
