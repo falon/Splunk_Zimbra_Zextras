@@ -28,12 +28,12 @@ modtime = 1668723927.205427000
 
 [views/mailbox_journal]
 version = 9.0.2
-modtime = 1676476188.156542000
+modtime = 1678200455.424949000
 
 [views/mailbox_admin]
 owner = admin
 version = 9.0.2
-modtime = 1678103485.833157000
+modtime = 1678195461.942194000
 
 [views/mailbox_access_stats]
 owner = admin
@@ -43,7 +43,7 @@ modtime = 1673516652.131135000
 [views/mailbox_authentication_by_name]
 owner = admin
 version = 9.0.2
-modtime = 1674722475.418534000
+modtime = 1678195613.010724000
 
 [views/control_room]
 owner = admin
@@ -62,7 +62,7 @@ modtime = 1674574623.547611000
 [views/mailbox_info]
 owner = admin
 version = 9.0.2
-modtime = 1675781224.511461000
+modtime = 1678196028.233679000
 
 [indexes/summary_email_1h]
 owner = admin
@@ -230,11 +230,15 @@ modtime = 1677247300.638640000
 [views/mailbox_calendar]
 owner = admin
 version = 9.0.2
-modtime = 1677655390.403363000
+modtime = 1678195674.976657000
 
 [views/mailbox_teams]
 access = read : [ admin, user-posta, user-soc ], write : [ admin ]
 export = none
 owner = admin
 version = 9.0.2
-modtime = 1678103388.075633000
+modtime = 1678195222.181594000
+
+[views/mailbox_access_geostats]
+version = 9.0.2
+modtime = 1678195513.808673000

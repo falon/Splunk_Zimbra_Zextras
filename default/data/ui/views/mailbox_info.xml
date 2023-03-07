@@ -80,6 +80,7 @@
   </row>
   <row depends="$mbox$,$exists$" rejects="$showSpinner$">
     <panel>
+      <title>Identity</title>
       <table>
         <search base="soap">
           <query>eval mail=mvjoin(mail,", ") | eval identity="Mailbox Name: " . 'Mailbox Name' 
@@ -120,6 +121,7 @@
       </single>
     </panel>
     <panel>
+      <title>Status</title>
       <viz type="status_indicator_app.status_indicator">
         <search base="soap">
           <query>eval icon=case(zimbraAccountStatus=="active","check",
@@ -188,6 +190,7 @@
   </row>
   <row depends="$mbox$,$exists$,$ERROR_show$" rejects="$showSpinner$">
     <panel id="panel_error">
+      <title>Errors</title>
       <table>
         <title>During last hour there were some errors on this account!</title>
         <search>
@@ -209,8 +212,8 @@
   </row>
   <row depends="$mbox$,$exists$" rejects="$showSpinner$">
     <panel>
+      <title>Folder Configuration</title>
       <table>
-        <title>Folder Configuration</title>
         <search base="soap">
           <query>eval folders=" Sent Folder: " . zimbraPrefSentMailFolder 
                     . "\0 Trash Folder Lifetime: " . zimbraMailTrashLifetime 
@@ -222,8 +225,8 @@
       </table>
     </panel>
     <panel>
+      <title>Shared Items</title>
       <table>
-        <title>Shared Items</title>
         <search base="soap">
           <query>mvexpand zimbraSharedItem | rename zimbraSharedItem as _raw | extract pairdelim=";" kvdelim=":" mv_add=false
 | table granteeName, granteeType, folderPath, folderDefaultView, rights, type</query>
@@ -240,8 +243,8 @@
       </table>
     </panel>
     <panel depends="$listname$">
+      <title>List detail of &lt;$listname$&gt;</title>
       <table>
-        <title>List detail of &lt;$listname$&gt;</title>
         <search>
           <query>| makeresults | eval name="$listname$" | name2info field="name" get="list" | fields name zimbraDistributionListSendShareMessageToNewMembers zimbraCreateTimestamp member | fields - _time | transpose column_name=Attribute | rename "row 1" as value</query>
           <earliest>-1s@s</earliest>
@@ -254,7 +257,7 @@
   </row>
   <row depends="$mbox$,$exists$" rejects="$showSpinner$">
     <panel>
-      <title>Sieve and Forward</title>
+      <title>Sieve and Forwards</title>
       <viz type="status_indicator_app.status_indicator">
         <search base="soap">
           <query>eval icon=if(zimbraFeatureMailForwardingEnabled=="TRUE","warning","info-circle"),

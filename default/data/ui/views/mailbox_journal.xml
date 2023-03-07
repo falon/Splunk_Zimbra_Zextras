@@ -78,8 +78,8 @@
   </fieldset>
   <row depends="$help$">
     <panel>
+      <title>Help</title>
       <html>
-      <h1>Help</h1>
       <p>
           <b>Please, refresh the browser when you change the Target.</b>
         </p>
@@ -135,10 +135,10 @@
   </row>
   <row depends="$overall$">
     <panel>
+      <title>Overall actions in mailboxes</title>
       <chart>
-        <title>Overall actions in mailboxes</title>
         <search>
-          <query>index=mailbox action!="Adding Message" (mail_id=* OR folder_id=*) | chart count(action) as calls over action</query>
+          <query>index=mailbox component=mailop action!="Adding Message" (mail_id=* OR folder_id=*) | chart count(action) as calls over action</query>
           <earliest>$interval.earliest$</earliest>
           <latest>$interval.latest$</latest>
         </search>
@@ -230,8 +230,8 @@
   </row>
   <row depends="$mail_ids$">
     <panel>
+      <title>Mail History</title>
       <table>
-        <title>Mail History</title>
         <search>
           <query>index=mailbox mbox_server=$mailserver$ mailbox_mid=$mid$ action=* mail_id IN ($mail_ids$)
             | eval interface=case(like(thread_name,"qtp%"),"WEB",like(thread_name,"LmtpServer-%"),"LMTP",like(thread_name,"ImapServer-%"),"IMAP",true(),thread_name)

@@ -20,9 +20,10 @@
   </fieldset>
   <row depends="$value$,$by$">
     <panel>
+      <title>Calendar Activity</title>
       <table>
         <search>
-          <query>[search index=mailbox component=calendar $by$=$value|s$ cal_id=* | fields index component cal_id] | transaction mvlist=t nullstr=" " index component cal_id | table _time auth_name authz_name cal_subject cal_action cal_status cal_notify</query>
+          <query>[search index=mailbox component=calendar $by$=$value|s$ cal_id=* | fields index component cal_id] | transaction mvlist=t nullstr=" " index component cal_id | table _time auth_name authz_name cal_subject action cal_status cal_notify</query>
           <earliest>$interval.earliest$</earliest>
           <latest>$interval.latest$</latest>
           <sampleRatio>1</sampleRatio>

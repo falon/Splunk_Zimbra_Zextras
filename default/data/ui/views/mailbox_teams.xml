@@ -42,7 +42,7 @@
       <title>Meeting (virtual stanza)</title>
       <table>
         <search>
-          <query>[search index=mailbox module="Zextras Team" (authz_name=$authz_name|s$ OR auth_name=$authz_name|s$) meeting_id=* | fields index module meeting_id] | lookup acctlookup account_id OUTPUT account_name as target | transaction mvlist=t nullstr=" " index module meeting_id | table _time auth_name authz_name team_action target meeting_name src_ip user_agent</query>
+          <query>[search index=mailbox module="Zextras Team" (authz_name=$authz_name|s$ OR auth_name=$authz_name|s$) meeting_id=* | fields index module meeting_id] | lookup acctlookup account_id OUTPUT account_name as target | transaction mvlist=t nullstr=" " index module meeting_id | table _time auth_name authz_name action target meeting_name src_ip user_agent</query>
           <earliest>$interval.earliest$</earliest>
           <latest>$interval.latest$</latest>
           <sampleRatio>1</sampleRatio>
@@ -52,7 +52,7 @@
           <eval token="ip">mvdedup($row.src_ip$)</eval>
           <eval token="ua">mvdedup($row.user_agent$)</eval>
         </drilldown>
-        <fields>_time, auth_name, authz_name, team_action, target, meeting_name</fields>
+        <fields>_time, auth_name, authz_name, action, target, meeting_name</fields>
       </table>
     </panel>
   </row>
@@ -61,7 +61,7 @@
       <title>Virtual meeting</title>
       <table>
         <search>
-          <query>[search index=mailbox module="Zextras Team" (authz_name=$authz_name|s$ OR auth_name=$authz_name|s$) instant_meeting_id=* | fields index module instant_meeting_id] | transaction mvlist=t nullstr=" " index module instant_meeting_id | table _time auth_name authz_name team_action target src_ip user_agent</query>
+          <query>[search index=mailbox module="Zextras Team" (authz_name=$authz_name|s$ OR auth_name=$authz_name|s$) instant_meeting_id=* | fields index module instant_meeting_id] | transaction mvlist=t nullstr=" " index module instant_meeting_id | table _time auth_name authz_name action target src_ip user_agent</query>
           <earliest>$interval.earliest$</earliest>
           <latest>$interval.latest$</latest>
         </search>
@@ -71,16 +71,16 @@
           <eval token="ua">mvdedup($row.user_agent$)</eval>
         </drilldown>
         <option name="refresh.display">progressbar</option>
-        <fields>_time, auth_name, authz_name, team_action, target</fields>
+        <fields>_time, auth_name, authz_name, action, target</fields>
       </table>
     </panel>
   </row>
-  <row>
+  <row depends="$authz_name$">
     <panel>
       <title>Room</title>
       <table>
         <search>
-          <query>[search index=mailbox module="Zextras Team" (authz_name=$authz_name|s$ OR auth_name=$authz_name|s$) room_id=* | fields index module room_id] | transaction mvlist=t nullstr=" " index module room_id | table _time auth_name authz_name team_action target room_name src_ip user_agent</query>
+          <query>[search index=mailbox module="Zextras Team" (authz_name=$authz_name|s$ OR auth_name=$authz_name|s$) room_id=* | fields index module room_id] | transaction mvlist=t nullstr=" " index module room_id | table _time auth_name authz_name action target room_name src_ip user_agent</query>
           <earliest>$interval.earliest$</earliest>
           <latest>$interval.latest$</latest>
         </search>
@@ -89,7 +89,7 @@
           <eval token="ip">mvdedup($row.src_ip$)</eval>
           <eval token="ua">mvdedup($row.user_agent$)</eval>
         </drilldown>
-        <fields>_time, auth_name, authz_name, team_action, target, room_name</fields>
+        <fields>_time, auth_name, authz_name, action, target, room_name</fields>
       </table>
     </panel>
   </row>
@@ -98,7 +98,7 @@
       <title>Conversation</title>
       <table>
         <search>
-          <query>index=mailbox module="Zextras Team" (authz_name=$authz_name|s$ OR auth_name=$authz_name|s$) team_action="created a conversation" | table _time auth_name authz_name target src_ip user_agent</query>
+          <query>index=mailbox module="Zextras Team" (authz_name=$authz_name|s$ OR auth_name=$authz_name|s$) action="created a conversation" | table _time auth_name authz_name target src_ip user_agent</query>
           <earliest>$interval.earliest$</earliest>
           <latest>$interval.latest$</latest>
         </search>

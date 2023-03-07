@@ -62,8 +62,8 @@
   </fieldset>
   <row depends="$service$,$statuslogin$,$metric$">
     <panel>
+      <title>Number of $title$</title>
       <map>
-        <title>Number of $title$</title>
         <search base="auth">
           <query>stats count by  src_ip auth_name | iplocation lang=en src_ip | stats $metric$ by Country | geom geo_countries allFeatures=True featureIdField=Country</query>
         </search>

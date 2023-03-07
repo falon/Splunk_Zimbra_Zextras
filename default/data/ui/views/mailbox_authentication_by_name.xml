@@ -47,8 +47,8 @@
   </fieldset>
   <row depends="$name$,$service$">
     <panel>
+      <title>Successful login</title>
       <table depends="$LS_show$">
-        <title>Successful login</title>
         <search base="base">
           <query>where login=="successful" | stats count by src_ip auth_name user_agent service | sort - count</query>
           <progress>
@@ -62,7 +62,6 @@
         <option name="dataOverlayMode">none</option>
         <option name="drilldown">cell</option>
         <option name="percentagesRow">false</option>
-        <option name="refresh.display">progressbar</option>
         <option name="rowNumbers">false</option>
         <option name="totalsRow">false</option>
         <option name="wrap">true</option>
@@ -87,8 +86,8 @@
   </row>
   <row depends="$name$,$service$">
     <panel>
+      <title>Login failed</title>
       <table depends="$LF_show$">
-        <title>Login failed</title>
         <search base="base">
           <query>where login=="failed" | stats count by src_ip auth_name service error | sort - count</query>
           <progress>
@@ -102,7 +101,6 @@
         <option name="dataOverlayMode">none</option>
         <option name="drilldown">cell</option>
         <option name="percentagesRow">false</option>
-        <option name="refresh.display">progressbar</option>
         <option name="rowNumbers">false</option>
         <option name="totalsRow">false</option>
         <option name="wrap">true</option>
@@ -127,9 +125,8 @@
   </row>
   <row>
     <panel depends="$by$">
-      <title>Successful Logins  $by$=&lt;$byvalue$&gt; - only for external IPs</title>
+      <title>SucceAuthenticated user: $authname$ssful Logins  $by$=&lt;$byvalue$&gt; - only for external IPs</title>
       <map>
-        <title>Authenticated user: $authname$</title>
         <search base="base">
           <query>search $by$="$byvalue$" auth_name=$authname$ | stats count by src_ip auth_name user_agent service | iplocation lang=en src_ip | geostats globallimit=1000  sum(count) as count by service</query>
         </search>
@@ -144,9 +141,8 @@
       </map>
     </panel>
     <panel depends="$failby$">
-      <title>Failed Logins  $failby$=&lt;$byvalue$&gt;  - only for external IPs</title>
+      <title>Failed Logins  $failby$=&lt;Auth name: $authname$$byvalue$&gt;  - only for external IPs</title>
       <map>
-        <title>Auth name: $authname$</title>
         <search base="base">
           <query>search $failby$="$byvalue$" auth_name=$authname$ | stats count by src_ip auth_name service error | iplocation lang=en src_ip | geostats globallimit=1000  sum(count) as count by service</query>
         </search>
@@ -162,23 +158,21 @@
   </row>
   <row depends="$show_details$" rejects="$by$, $failby$">
     <panel>
+      <title>Details on successful logins</title>
       <table depends="$LS_show$">
-        <title>Details on successful logins</title>
         <search base="base">
           <query>where login="successful" | table _time src_ip auth_name service user_agent</query>
         </search>
         <option name="drilldown">none</option>
-        <option name="refresh.display">progressbar</option>
       </table>
     </panel>
     <panel>
+      <title>Details on failed logins</title>
       <table depends="$LF_show$">
-        <title>Details on failed logins</title>
         <search base="base">
           <query>where login=="failed" | table _time src_ip auth_name service error</query>
         </search>
         <option name="drilldown">none</option>
-        <option name="refresh.display">progressbar</option>
       </table>
     </panel>
   </row>
