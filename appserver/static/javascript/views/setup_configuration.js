@@ -33,6 +33,24 @@ async function create_custom_configuration_file(
       properties_to_update,
   );
 
+  var custom_configuration_file_name = "indexes";
+  var stanza_name = "summary_email_1h";
+  var properties_to_update = {
+          'coldPath': all_properties.index_coldPath,
+	  'enableDataIntegrityControl': all_properties.index_enableDataIntegrityControl,
+	  'enableTsidxReduction': all_properties.index_enableTsidxReduction,
+	  'homePath': all_properties.index_homePath,
+	  'maxTotalDataSizeMB': all_properties.index_maxTotalDataSizeMB,
+	  'thawedPath': all_properties.index_thawedPath
+  };
+
+  await SplunkHelpers.update_configuration_file(
+      splunk_js_sdk_service,
+      custom_configuration_file_name,
+      stanza_name,
+      properties_to_update,
+  );
+
 };
 
 async function complete_setup(splunk_js_sdk_service) {

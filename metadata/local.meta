@@ -67,7 +67,7 @@ modtime = 1678196028.233679000
 [indexes/summary_email_1h]
 owner = admin
 version = 9.0.2
-modtime = 1674050486.090500000
+modtime = 1678271354.170734000
 
 [savedsearches/Summary%20-%20Account%20stat%20-%20Last%201h]
 access = read : [ admin, user-posta, user-soc ], write : [ admin ]
@@ -119,7 +119,7 @@ modtime = 1674480898.541928000
 export = none
 owner = admin
 version = 9.0.2
-modtime = 1677247298.863321000
+modtime = 1678271353.003862000
 
 [savedsearches/REB%20-%20Statistiche%20invio%20rateizzazionibollo%40RP]
 export = none
@@ -206,7 +206,7 @@ modtime = 1674746339.154559000
 [savedsearches/Anomal%20outbound%20flow]
 owner = admin
 version = 9.0.2
-modtime = 1677247299.794444000
+modtime = 1678271353.578214000
 
 [savesearches/default]
 owner = admin
@@ -225,7 +225,7 @@ modtime = 1677246809.250943000
 
 [app/install]
 version = 9.0.2
-modtime = 1677247300.638640000
+modtime = 1678271354.736275000
 
 [views/mailbox_calendar]
 owner = admin
