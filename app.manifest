@@ -1,11 +1,11 @@
 {
   "schemaVersion": "2.0.0",
   "info": {
-    "title": "Splunk for Zimbra with Zextras",
+    "title": "Zimbra with Zextras",
     "id": {
       "group": null,
       "name": "Splunk_Zimbra_Zextras",
-      "version": "0.0.1"
+      "version": "0.0.3"
     },
     "author": [
       {
