@@ -242,3 +242,10 @@ modtime = 1678195222.181594000
 [views/mailbox_access_geostats]
 version = 9.0.2
 modtime = 1678195513.808673000
+
+[views/postfix_summ]
+access = read : [ admin, user-posta, user-soc ], write : [ admin ]
+export = none
+owner = admin
+version = 9.0.4
+modtime = 1678891850.358157000
