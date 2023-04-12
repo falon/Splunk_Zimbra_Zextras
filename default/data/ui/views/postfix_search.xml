@@ -254,20 +254,21 @@
                   action=if(dest_type=="local" AND action=="sent", "",action)
             $onlyThisTo$
             | transaction  maxpause=3h maxspan=6d startswith="postfix_process=*smtpd src_host=* internal_message_id=* NOT protocol=*" endswith=removed mta_server internal_message_id
-            | transaction startswith="postfix_process=smtpd src_host=* internal_message_id=* $whatSearch2$ NOT protocol=*" maxpause=1m maxspan=1m  mta_server message_id
+            | transaction startswith="postfix_process=smtpd src_host=* internal_message_id=* $whatSearch2$ NOT protocol=*" maxpause=5m maxspan=5m  mta_server message_id
             | eval delay=max(delay), client_ip=if(isnotnull(internal_src_ip),internal_src_ip,orig_src_ip)
             | lookup dnslookup clientip as client_ip OUTPUT clienthost as client
             | eval client=if(isnull(client),client_ip,client)
             | eval delay_pristine = delay
-            | table _time client, client_ip, from recipient action Hits relay delay delay_pristine status_recipient status_message status_full message_id
-            | fieldformat delay=if(delay&lt;60000, delay/1000 . "\"", tostring(delay/1000, "duration"))</query>
+            | table _time client, client_ip, from recipient size action Hits relay delay delay_pristine status_recipient status_message status_full message_id
+	    | fieldformat delay=if(delay&lt;60000, delay/1000 . "\"", tostring(delay/1000, "duration"))
+            | fieldformat size=if(max(size)&lt;1024*1024, tostring(round(max(size)/1024,1)) . " KiB", tostring(round(max(size)/(1024*1024),1)) . " MiB")</query>
           <earliest>$interval.earliest$</earliest>
           <latest>$interval.latest$</latest>
           <sampleRatio>1</sampleRatio>
         </search>
         <option name="drilldown">cell</option>
         <option name="refresh.display">progressbar</option>
-        <fields>["_time","client","from","recipient","action","Hits","relay","delay"]</fields>
+        <fields>["_time","client","from","recipient","size","action","Hits","relay","delay"]</fields>
         <drilldown>
           <condition field="action">
             <unset token="client"></unset>
