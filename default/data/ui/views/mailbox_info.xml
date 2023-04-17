@@ -227,13 +227,21 @@
         <option name="refresh.display">progressbar</option>
       </table>
     </panel>
-    <panel>
+    <panel depends="$memberof_show$">
       <title>$mbox$ is member of</title>
       <table>
         <search>
           <query>| makeresults count=1 | eval authz_name=$mbox|s$ | name2info field="authz_name" get="memberOf" | mvexpand memberOf | spath input=memberOf | table name dynamic via</query>
           <earliest>-24h@h</earliest>
           <latest>now</latest>
+          <progress>
+            <condition match="'job.resultCount' &gt; 0">
+              <set token="memberof_show">true</set>
+            </condition>
+            <condition>
+              <unset token="memberof_show"></unset>
+            </condition>
+          </progress>
         </search>
         <option name="refresh.display">progressbar</option>
         <option name="drilldown">cell</option>
