@@ -207,7 +207,7 @@
       <title>Errors</title>
       <table>
         <search>
-          <query>sourcetype=zimbra:postfix mta_server=* (warning: OR error: OR fatal: OR panic:)
+          <query>sourcetype=zimbra:postfix mta_server=* error_class=* (CASE(warning:) OR CASE(error:) OR CASE(fatal:) OR CASE(panic:))
 | table _time error_class error_detail</query>
           <earliest>$interval.earliest$</earliest>
           <latest>$interval.latest$</latest>

@@ -163,8 +163,8 @@
       <p>Other things to keep in mind:</p>
       <ul>
       <li>Returned timestamp is the starting time of mail transaction. Select an interval which include the time the mail was sent to the server until to the time the mail has been delivered.</li>
-      <li>If you want all mail from a sender, keep the field <code>To</code> empty.</li>
-      <li>If you want all mail received by a recipient, keep the field <code>From</code> empty.</li>
+      <li>If you want all mail from a sender, leave the field <code>To</code> empty.</li>
+      <li>If you want all mail received by a recipient, leave the field <code>From</code> empty.</li>
       <li>Details on deferred <b>are not included until the end of queue lifetime occurs</b>. When the mail is still in queue you can see a partial result without the <code>sent</code> action value.</li>
       <li>Click on <code>deferred</code> <i>action</i> value to see details on deferred recipients.</li>
       <li>Click on <code>relay to store*</code> <i>relay</i> value to see mailbox actions.</li>

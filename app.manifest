@@ -5,7 +5,7 @@
     "id": {
       "group": null,
       "name": "Splunk_Zimbra_Zextras",
-      "version": "0.0.3"
+      "version": "0.0.4"
     },
     "author": [
       {
@@ -64,7 +64,7 @@
        "optional": true
      },
      "TA_Zimbra_Zextras": {
-       "version": ">=0.0.3",
+       "version": ">=0.0.4",
        "package": null,
        "optional": false
      },
