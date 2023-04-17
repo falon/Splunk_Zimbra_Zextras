@@ -1,4 +1,7 @@
 <form version="1.1">
+  <init>
+    <set token="exists">true</set>
+  </init>
   <search id="soap">
     <query>| makeresults | eval authz_name="$mbox$" | name2info field=authz_name | rename authz_name as "Mailbox Name" | fields "Mailbox Name" zimbra* givenName sn mail isAccount | fields - _time</query>
     <earliest>-1s@s</earliest>
@@ -8,7 +11,6 @@
       <!-- Set the token to Show Spinner when the search is running -->
       <set token="showSpinner">true</set>
       <unset token="listname"></unset>
-      <unset token="exists"></unset>
     </progress>
     <done>
       <!-- Unset the token to Hide Spinner when the search completes -->
@@ -22,7 +24,8 @@
     <input type="text" token="mbox">
       <label>Mailbox Name</label>
       <change>
-        <unset token="exists"></unset>
+        <set token="exists">true</set>
+        <set token="showSpinner">true</set>
       </change>
     </input>
   </fieldset>
@@ -222,6 +225,26 @@
         </search>
         <option name="drilldown">none</option>
         <option name="refresh.display">progressbar</option>
+      </table>
+    </panel>
+    <panel>
+      <title>$mbox$ is member of</title>
+      <table>
+        <search>
+          <query>| makeresults count=1 | eval authz_name=$mbox|s$ | name2info field="authz_name" get="memberOf" | mvexpand memberOf | spath input=memberOf | table name dynamic via</query>
+          <earliest>-24h@h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="refresh.display">progressbar</option>
+        <option name="drilldown">cell</option>
+        <drilldown>
+          <condition field="name">
+            <set token="listname">$click.value2$</set>
+          </condition>
+          <condition>
+            <unset token="listname"></unset>
+          </condition>
+        </drilldown>
       </table>
     </panel>
     <panel>
