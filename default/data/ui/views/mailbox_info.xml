@@ -255,6 +255,18 @@
         </drilldown>
       </table>
     </panel>
+    <panel depends="$listname$">
+      <title>List detail of &lt;$listname$&gt;</title>
+      <table>
+        <search>
+          <query>| makeresults | eval name="$listname$" | name2info field="name" get="list" | fields name zimbraDistributionListSendShareMessageToNewMembers zimbraCreateTimestamp member | fields - _time | transpose column_name=Attribute | rename "row 1" as value</query>
+          <earliest>-1s@s</earliest>
+          <latest>@s</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </table>
+    </panel>
     <panel>
       <title>Shared Items</title>
       <table>
@@ -271,18 +283,6 @@
             <unset token="listname"></unset>
           </condition>
         </drilldown>
-      </table>
-    </panel>
-    <panel depends="$listname$">
-      <title>List detail of &lt;$listname$&gt;</title>
-      <table>
-        <search>
-          <query>| makeresults | eval name="$listname$" | name2info field="name" get="list" | fields name zimbraDistributionListSendShareMessageToNewMembers zimbraCreateTimestamp member | fields - _time | transpose column_name=Attribute | rename "row 1" as value</query>
-          <earliest>-1s@s</earliest>
-          <latest>@s</latest>
-        </search>
-        <option name="drilldown">none</option>
-        <option name="refresh.display">progressbar</option>
       </table>
     </panel>
   </row>
