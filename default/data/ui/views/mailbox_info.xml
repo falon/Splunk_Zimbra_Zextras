@@ -1,6 +1,7 @@
 <form version="1.1">
   <init>
-    <set token="exists">true</set>
+    <unset token="exists"></unset>
+    <unset token="showSpinner"></unset>
   </init>
   <search id="soap">
     <query>| makeresults | eval authz_name="$mbox$" | name2info field=authz_name | rename authz_name as "Mailbox Name" | fields "Mailbox Name" zimbra* givenName sn mail isAccount | fields - _time</query>
@@ -24,14 +25,15 @@
     <input type="text" token="mbox">
       <label>Mailbox Name</label>
       <change>
-        <set token="exists">true</set>
-        <set token="showSpinner">true</set>
+	<unset token="exists"></unset>
+	<set token="showSpinner">true</set>
+	<eval token="rejectValue">if(len('value')==0,true(),null())</eval>
       </change>
     </input>
   </fieldset>
   <row>
     <panel>
-      <html depends="$showSpinner$">
+      <html depends="$showSpinner$" rejects="$rejectValue$">
         <!-- CSS Style to Create Spinner using animation -->
         <style>
           .loadSpinner {
@@ -476,11 +478,19 @@
       </table>
     </panel>
   </row>
-  <row depends="$mbox$" rejects="$showSpinner$,$exists$">
+  <row depends="$mbox$" rejects="$showSpinner$,$exists$,$rejectValue$">
     <panel>
       <html>
       <p>
           <code>$mbox$</code> is not a Zimbra Account.</p>
+    </html>
+    </panel>
+  </row>
+  <row depends="$mbox$,$rejectValue$" rejects="$exists$">
+    <panel>
+      <html>
+      <p>
+          Enter a value for <code>Mailbox Name</code>, please.</p>
     </html>
     </panel>
   </row>
