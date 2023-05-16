@@ -254,7 +254,7 @@
                   action=if(dest_type=="local" AND action=="sent", "",action)
             $onlyThisTo$
             | transaction  maxpause=3h maxspan=6d startswith="postfix_process=*smtpd src_host=* internal_message_id=* NOT protocol=*" endswith=removed mta_server internal_message_id
-            | transaction startswith="postfix_process=smtpd src_host=* internal_message_id=* $whatSearch2$ NOT protocol=*" maxpause=5m maxspan=5m  mta_server message_id
+            | transaction startswith="postfix_process=smtpd src_host=* internal_message_id=* $whatSearch2$ NOT protocol=*" maxpause=20m maxspan=20m  mta_server message_id
             | eval delay=max(delay), client_ip=if(isnotnull(internal_src_ip),internal_src_ip,orig_src_ip)
             | lookup dnslookup clientip as client_ip OUTPUT clienthost as client
             | eval client=if(isnull(client),client_ip,client)
