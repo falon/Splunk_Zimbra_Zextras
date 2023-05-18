@@ -11,8 +11,8 @@
       <choice value="CreateCalendarResource">Create Cal Entry</choice>
       <choice value="ModifyCalendarResource">Mod Cal Entry</choice>
       <choice value="DelegateAuth">Delegate Auth</choice>
-      <choice value="">Add account (TO DO)</choice>
       <choice value="DeleteAccount">Remove Account</choice>
+      <choice value="CreateAccount">Create Account</choice>
       <choice value="ModifyAccount">Mod Account</choice>
       <choice value="AddAccountAlias">Add Alias</choice>
       <choice value="RemoveAccountAlias">Remove Alias</choice>
@@ -21,6 +21,12 @@
         <condition value="CreateMountPoint">
           <set token="mount">true</set>
           <set token="label">$label$</set>
+	</condition>
+	<condition value="CreateAccount">
+	  <set token="fields">givenName sn cn displayName</set>
+	  <set token="formatList"></set>
+          <set token="label">$label$</set>
+          <unset token="mount"></unset>
         </condition>
         <condition value="AddDistributionListMember">
           <set token="fields">members</set>
@@ -87,7 +93,7 @@
           <query>index=mailbox process=audit component=security action=$action$ target=$target|s$
                  | fields - zimbra_event_length
                  | rename user_agent as Agent
-                 | table _time auth_name src_ip target Agent $fields$ $formatList$</query>
+                 | table _time auth_name src_ip Agent target $fields$ $formatList$</query>
           <earliest>$interval.earliest$</earliest>
           <latest>$interval.latest$</latest>
           <sampleRatio>1</sampleRatio>
