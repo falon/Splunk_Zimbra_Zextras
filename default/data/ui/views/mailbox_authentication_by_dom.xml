@@ -1,5 +1,5 @@
 <form version="1.1">
-  <label>Account Authentication by domains</label>
+  <label>Mailbox Authentication by domains</label>
   <search id="base">
     <query>index=mailbox (process=mailbox OR process=audit) module=ZxAuth operation=authentication-service login=* service=$service$ | fields _time login src_ip auth_name user_agent service error</query>
     <earliest>$interval.earliest$</earliest>
