@@ -1,0 +1,92 @@
+<form version="1.1">
+  <label>Account Authentication by domains</label>
+  <search id="base">
+    <query>index=mailbox (process=mailbox OR process=audit) module=ZxAuth operation=authentication-service login=* service=$service$ | fields _time login src_ip auth_name user_agent service error</query>
+    <earliest>$interval.earliest$</earliest>
+    <latest>$interval.latest$</latest>
+    <sampleRatio>1</sampleRatio>
+  </search>
+  <fieldset submitButton="false">
+    <input type="dropdown" token="service">
+      <label>Service</label>
+      <fieldForLabel>service</fieldForLabel>
+      <fieldForValue>service</fieldForValue>
+      <search>
+        <query>index=mailbox (process=mailbox OR process=audit) module=ZxAuth operation=authentication-service service=* | fields service | dedup service</query>
+        <earliest>-4h@m</earliest>
+        <latest>now</latest>
+      </search>
+      <choice value="*">ALL</choice>
+      <change>
+        <unset token="login"></unset>
+        <unset token="dom"></unset>
+      </change>
+    </input>
+    <input type="time" token="interval">
+      <label>Interval</label>
+      <default>
+        <earliest>-60m@m</earliest>
+        <latest>now</latest>
+      </default>
+    </input>
+  </fieldset>
+  <row depends="$service$">
+    <panel>
+      <title>Overall</title>
+      <chart>
+        <search base="base">
+          <query>eval auth_dom=lower(replace(auth_name, "^([^@]+)@([^$]+)", "\2"))
+            | chart count by  auth_dom login
+            | eval tot=successful+failed
+            | sort - tot
+            | fields - tot</query>
+        </search>
+        <option name="charting.axisTitleX.visibility">collapsed</option>
+        <option name="charting.axisTitleY.visibility">collapsed</option>
+        <option name="charting.chart">bar</option>
+        <option name="charting.chart.stackMode">stacked</option>
+        <option name="charting.drilldown">all</option>
+        <option name="height">470</option>
+        <option name="refresh.display">progressbar</option>
+        <drilldown>
+          <eval token="dom">if(isnotnull($click.value$),$click.value$,"*")</eval>
+          <eval token="dom_label">if(isnotnull($click.value$),upper($click.value$),"ALL DOMAINS")</eval>
+          <set token="login">$click.name2$</set>
+        </drilldown>
+      </chart>
+    </panel>
+    <panel>
+      <title>Failing rate</title>
+      <chart>
+        <search base="base">
+          <query>eval auth_dom=lower(replace(auth_name, "^([^@]+)@([^$]+)", "\2"))
+            | chart count by  auth_dom login
+            | eval rate_fail=100*failed/(failed+successful)
+            | fields - failed successful
+            | sort - rate_fail</query>
+        </search>
+        <option name="charting.chart">bar</option>
+        <option name="charting.drilldown">none</option>
+        <option name="charting.legend.placement">none</option>
+        <option name="height">470</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+    </panel>
+  </row>
+  <row depends="$login$">
+    <panel>
+      <title>$dom_label$</title>
+      <table>
+        <title>Top $dom_label$ authentication $login$</title>
+        <search>
+          <query>index=mailbox (process=mailbox OR process=audit) module=ZxAuth operation=authentication-service auth_name=*@$dom$ login=$login$ service=$service$
+| top showperc=f auth_name service</query>
+          <earliest>$interval.earliest$</earliest>
+          <latest>$interval.latest$</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </table>
+    </panel>
+  </row>
+</form>
