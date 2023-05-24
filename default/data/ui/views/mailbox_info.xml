@@ -25,9 +25,9 @@
     <input type="text" token="mbox">
       <label>Mailbox Name</label>
       <change>
-	<unset token="exists"></unset>
-	<set token="showSpinner">true</set>
-	<eval token="rejectValue">if(len('value')==0,true(),null())</eval>
+        <unset token="exists"></unset>
+        <set token="showSpinner">true</set>
+        <eval token="rejectValue">if(len('value')==0,true(),null())</eval>
       </change>
     </input>
   </fieldset>
@@ -212,6 +212,47 @@
           </progress>
         </search>
         <option name="drilldown">none</option>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Last 60m requests</title>
+      <table>
+        <search>
+          <query>index=mailbox process=mailbox authz_name=$mbox$ request=* | top showperc=f countfield=TOT request by auth_name</query>
+          <earliest>-60m@m</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+      </table>
+    </panel>
+    <panel>
+      <title>Requests response delay</title>
+      <chart>
+        <title>Click on MAX delay to show detail</title>
+        <search>
+          <query>index=mailbox process=mailbox authz_name=$mbox$ request=* | timechart avg(elapsed) as "AVG" max(elapsed) as "MAX"</query>
+          <earliest>-60m@m</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="charting.chart">column</option>
+        <option name="charting.drilldown">all</option>
+        <drilldown>
+          <eval token="maxdel">if($click.name2$=="MAX",$click.value2$,null())</eval>
+          <set token="mintime">$earliest$</set>
+          <set token="maxtime">$latest$</set>
+        </drilldown>
+      </chart>
+      <table depends="$maxdel$">
+        <title>Details on MAX delay</title>
+        <search>
+          <query>index=mailbox process=mailbox authz_name=$mbox$ request=* elapsed=$maxdel$ | table _time request src_ip user_agent auth_name elapsed</query>
+          <earliest>$mintime$</earliest>
+          <latest>$maxtime$</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
       </table>
     </panel>
   </row>
