@@ -232,12 +232,14 @@
       <chart>
         <title>Click on MAX delay to show detail</title>
         <search>
-          <query>index=mailbox process=mailbox authz_name=$mbox$ request=* | timechart avg(elapsed) as "AVG" max(elapsed) as "MAX"</query>
+          <query>index=mailbox process=mailbox authz_name=$mbox$ request=* | timechart max(elapsed) as "MAX" avg(elapsed) as "AVG"</query>
           <earliest>-60m@m</earliest>
           <latest>now</latest>
         </search>
         <option name="charting.chart">column</option>
+        <option name="charting.chart.stackMode">stacked</option>
         <option name="charting.drilldown">all</option>
+        <option name="refresh.display">progressbar</option>
         <drilldown>
           <eval token="maxdel">if($click.name2$=="MAX",$click.value2$,null())</eval>
           <set token="mintime">$earliest$</set>
