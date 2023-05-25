@@ -236,7 +236,8 @@
           <earliest>-60m@m</earliest>
           <latest>now</latest>
         </search>
-        <option name="charting.chart">column</option>
+	<option name="charting.chart">column</option>
+	<option name="charting.chart.overlayFields">AVG</option>
         <option name="charting.chart.stackMode">stacked</option>
         <option name="charting.drilldown">all</option>
         <option name="refresh.display">progressbar</option>
