@@ -199,7 +199,7 @@
       <table>
         <title>During last hour there were some errors on this account!</title>
         <search>
-          <query>index=mailbox (auth_name=$mbox$ OR authz_name=$mbox$) log_level!="INFO" | table src_ip auth_name authz_name user_agent mbox_server component action</query>
+          <query>index=mailbox (auth_name=$mbox$ OR authz_name=$mbox$) log_level!="INFO" component=* NOT "INVALID_CREDENTIALS" | eval error=coalesce(action, error, message) | table src_ip auth_name authz_name user_agent mbox_server component error</query>
           <earliest>-60m@m</earliest>
           <latest>now</latest>
           <progress>
@@ -215,7 +215,7 @@
       </table>
     </panel>
   </row>
-  <row>
+  <row depends="$mbox$,$exists$" rejects="$showSpinner$">
     <panel>
       <title>Last 60m requests</title>
       <table>

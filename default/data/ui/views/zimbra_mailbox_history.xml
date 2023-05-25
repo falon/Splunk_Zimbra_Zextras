@@ -78,4 +78,18 @@
       </table>
     </panel>
   </row>
+  <row>
+    <panel>
+      <title>Errors on $account$</title>
+      <table>
+        <search>
+          <query>index=mailbox authz_name=$account$ log_level!="INFO" component=* NOT "INVALID_CREDENTIALS" | eval error=coalesce(action, error, message) | table src_ip auth_name authz_name user_agent mbox_server component error</query>
+          <earliest>$interval.earliest$</earliest>
+          <latest>$interval.latest$</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </table>
+    </panel>
+  </row>
 </form>
