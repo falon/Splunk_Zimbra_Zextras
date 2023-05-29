@@ -378,7 +378,7 @@
       </html>
       <table>
         <search>
-          <query>[search index=mailbox message_id=$messageID$ | transaction index mailbox_mid message_id  | fields index mailbox_mid mail_id | where isnotnull(mail_id)] OR [search index=mailbox message_id=$messageID$ | fields index mailbox_mid message_id] | sort +_time | eval action=if(isnull(action),message, action) | lookup acctlookup account_id as target_account_id OUTPUT account_name as target | table _time src_ip auth_name authz_name thread_name action target folder rtype sender to</query>
+          <query>[search index=mailbox message_id=$messageID|s$ | transaction index mailbox_mid message_id  | fields index mailbox_mid mail_id | where isnotnull(mail_id)] OR [search index=mailbox message_id=$messageID|s$ | fields index mailbox_mid message_id] | sort +_time | eval action=if(isnull(action),message, action) | lookup acctlookup account_id as target_account_id OUTPUT account_name as target | table _time src_ip auth_name authz_name thread_name action target folder rtype sender to</query>
           <earliest>$newinterval.earliest$</earliest>
           <latest>$newinterval.latest$</latest>
         </search>
