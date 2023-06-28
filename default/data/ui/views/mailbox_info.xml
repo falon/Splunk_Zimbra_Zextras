@@ -443,7 +443,7 @@
       <single>
         <title>mail deleted</title>
         <search base="soap">
-          <query>map search="search earliest=-60m@m latest=@m index=mailbox mailbox_mid=$$zimbraMailboxId$$ mbox_server=$$zimbraMailHost$$ action=\"Deleting*\" mail_id=* | eval nmail=mvcount(mail_id)"
+          <query>map search="search earliest=-60m@m latest=@m index=mailbox mailbox_mid=$$zimbraMailboxId$$ mbox_server=$$zimbraMailHost$$ action=\"Deleting*\ mail_id=* | fields mail_id | eval nmail=mvcount(mail_id)"
             | stats sum(nmail) as del, count
             | eval del=if(isnull(del), count, del)
             | fields del</query>
@@ -457,7 +457,11 @@
       <table>
         <title>Access by user agent</title>
         <search base="soap">
+<<<<<<< HEAD
           <query>map search="search earliest=-60m@m latest=@m index=mailbox process=mailbox mailbox_mid=$$zimbraMailboxId$$ mbox_server=$$zimbraMailHost$$ auth_name!=migration@csi.it" | chart count over user_agent by auth_name</query>
+=======
+          <query>map search="search earliest=-60m@m latest=@m index=mailbox process=mailbox mailbox_mid=$$zimbraMailboxId$$ mbox_server=$$zimbraMailHost$$ auth_name=* | fields user_agent auth_name" | chart count over user_agent by auth_name</query>
+>>>>>>> cf0d406 (- Speed up mailbox_info. `map` require minimum set of fields to wor well, even if they are unused.)
         </search>
         <option name="drilldown">none</option>
         <option name="percentagesRow">false</option>
@@ -467,7 +471,11 @@
       <table>
         <title>Access by IP</title>
         <search base="soap">
+<<<<<<< HEAD
           <query>map search="search earliest=-60m@m latest=@m index=mailbox process=mailbox mailbox_mid=$$zimbraMailboxId$$ mbox_server=$$zimbraMailHost$$ auth_name!=migration@csi.it" |
+=======
+          <query>map search="search earliest=-60m@m latest=@m index=mailbox process=mailbox mailbox_mid=$$zimbraMailboxId$$ mbox_server=$$zimbraMailHost$$ auth_name=* | fields src_ip auth_name" |
+>>>>>>> cf0d406 (- Speed up mailbox_info. `map` require minimum set of fields to wor well, even if they are unused.)
                      chart count over src_ip by auth_name | iplocation src_ip lang=it
                      | eval Country=if(isnull(Country),"CED",Country." ".Region), src_ip=Country." - ".src_ip
                      | fields - City - Country - Region - lat - lon</query>
@@ -478,7 +486,11 @@
       <table depends="$EAS_show$">
         <title>EAS Access by model</title>
         <search base="soap">
+<<<<<<< HEAD
           <query>map search="search earliest=-60m@m latest=@m index=mailbox process=sync mailbox_mid=$$zimbraMailboxId$$ mbox_server=$$zimbraMailHost$$ auth_name!=migration@csi.it" | chart count over model by auth_name</query>
+=======
+          <query>map search="search earliest=-60m@m latest=@m index=mailbox process=sync mailbox_mid=$$zimbraMailboxId$$ mbox_server=$$zimbraMailHost$$ auth_name=* | fields model auth_name" | chart count over model by auth_name</query>
+>>>>>>> cf0d406 (- Speed up mailbox_info. `map` require minimum set of fields to wor well, even if they are unused.)
           <progress>
             <condition match="'job.resultCount' &gt; 0">
               <set token="EAS_show">true</set>
@@ -494,7 +506,11 @@
       <table depends="$EAS_show$">
         <title>EAS Access by IP</title>
         <search base="soap">
+<<<<<<< HEAD
           <query>map search="search earliest=-60m@m latest=@m index=mailbox process=sync mailbox_mid=$$zimbraMailboxId$$ mbox_server=$$zimbraMailHost$$ auth_name!=migration@csi.it" |
+=======
+          <query>map search="search earliest=-60m@m latest=@m index=mailbox process=sync mailbox_mid=$$zimbraMailboxId$$ mbox_server=$$zimbraMailHost$$ auth_name=* | fields src_ip auth_name" |
+>>>>>>> cf0d406 (- Speed up mailbox_info. `map` require minimum set of fields to wor well, even if they are unused.)
                      chart count over src_ip by auth_name | iplocation src_ip lang=it
                      | eval Country=if(isnull(Country),"CED",Country." ".Region), src_ip=Country." - ".src_ip
                      | fields - City - Country - Region - lat - lon</query>
