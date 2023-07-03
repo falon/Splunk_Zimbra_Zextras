@@ -5,6 +5,7 @@
     <input type="dropdown" token="action">
       <label>action</label>
       <choice value="CreateMountPoint">Create Mountpoint</choice>
+      <choice value="DeleteMountPoint">Destroy Mountpoint</choice>
       <choice value="AddDistributionListMember">Add List Member</choice>
       <choice value="RemoveDistributionListMember">Remove List Member</choice>
       <choice value="ModifyDistributionList">Mod List</choice>
@@ -21,42 +22,54 @@
         <condition value="CreateMountPoint">
           <set token="mount">true</set>
           <set token="label">$label$</set>
-	</condition>
-	<condition value="CreateAccount">
-	  <set token="fields">givenName sn cn displayName</set>
-	  <set token="formatList"></set>
+          <unset token="unmount"></unset>
+  	    </condition>
+        <condition value="DeleteMountPoint">
+          <set token="unmount">true</set>
           <set token="label">$label$</set>
           <unset token="mount"></unset>
+  	    </condition>
+  	    <condition value="CreateAccount">
+  	      <set token="fields">givenName sn cn displayName</set>
+  	      <set token="formatList"></set>
+          <set token="label">$label$</set>
+          <unset token="mount"></unset>
+          <unset token="unmount"></unset>
         </condition>
         <condition value="AddDistributionListMember">
           <set token="fields">members</set>
           <set token="formatList"></set>
           <set token="label">$label$</set>
           <unset token="mount"></unset>
+          <unset token="unmount"></unset>
         </condition>
         <condition match="match('value',&quot;AccountAlias$&quot;)">
           <set token="fields">alias</set>
           <set token="formatList"></set>
           <set token="label">$label$</set>
           <unset token="mount"></unset>
+          <unset token="unmount"></unset>
         </condition>
         <condition value="RemoveDistributionListMember">
           <set token="fields">member</set>
           <set token="formatList"></set>
           <set token="label">$label$</set>
           <unset token="mount"></unset>
+          <unset token="unmount"></unset>
         </condition>
         <condition match="$value$ == &quot;ModifyDistributionList&quot; OR $value$ == &quot;CreateCalendarResource&quot; OR $value$ == &quot;ModifyCalendarResource&quot; OR $value$ == &quot;ModifyAccount&quot; OR $value$ == &quot;ModifyCos&quot;">
           <set token="fields">displayName description zimbra*</set>
           <set token="formatList">| untable _time field value | transaction mvlist=t _time | table _time field value</set>
           <set token="label">$label$</set>
           <unset token="mount"></unset>
+          <unset token="unmount"></unset>
         </condition>
         <condition>
           <set token="fields"></set>
           <set token="formatList"></set>
           <set token="label">$label$</set>
           <unset token="mount"></unset>
+          <unset token="unmount"></unset>
         </condition>
       </change>
     </input>
@@ -72,7 +85,7 @@
       </default>
     </input>
   </fieldset>
-  <row depends="$action$" rejects="$mount$">
+  <row depends="$action$" rejects="$mount$,$unmount$">
     <panel>
       <title>$label$</title>
       <html>
@@ -117,6 +130,33 @@
       <table>
         <search>
           <query>index=mailbox (CreateMountPointRequest WARN "handler exception") OR (action="Adding Mountpoint") authz_name=$target|s$
+                 | fields - zimbra_event_length
+                 | rename user_agent as Agent
+                 | table _time auth_name src_ip authz_name Agent mountname error</query>
+          <earliest>$interval.earliest$</earliest>
+          <latest>$interval.latest$</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="count">20</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">none</option>
+        <option name="percentagesRow">false</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="rowNumbers">false</option>
+        <option name="totalsRow">false</option>
+        <option name="wrap">false</option>
+        <format type="color" field="auth_name">
+          <colorPalette type="map">{"zimbra":#D41F1F}</colorPalette>
+        </format>
+      </table>
+    </panel>
+  </row>
+  <row depends="$unmount$">
+    <panel>
+      <title>$label$</title>
+      <table>
+        <search>
+          <query>index=mailbox action="Deleting Mountpoint" authz_name=$target|s$
                  | fields - zimbra_event_length
                  | rename user_agent as Agent
                  | table _time auth_name src_ip authz_name Agent mountname error</query>
