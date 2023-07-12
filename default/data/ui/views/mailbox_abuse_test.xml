@@ -1,0 +1,265 @@
+<form version="1.1">
+  <init>
+    <set token="intervalOK">true</set>
+  </init>
+  <label>Abuse test</label>
+  <description>Please choose an interval of 60m</description>
+  <fieldset submitButton="false">
+    <input type="text" token="mbox">
+      <label>Mailbox</label>
+      <change>
+        <unset token="details"></unset>
+        <eval token="mbox">if('value'=="",null(),'value')</eval>
+      </change>
+    </input>
+    <input type="time" token="interval">
+      <label>Interval</label>
+      <default>
+        <earliest>-60m@m</earliest>
+        <latest>@m</latest>
+      </default>
+      <change>
+        <eval token="eSec">if(isnum($interval.earliest$), $interval.earliest$, relative_time(now(), $interval.earliest$))</eval>
+        <eval token="lSec">if(isnum($interval.latest$), $interval.latest$, relative_time(now(), $interval.latest$))</eval>
+        <eval token="intervalOK">if($lSec$-$eSec$==3600,true(),null())</eval>
+      </change>
+    </input>
+  </fieldset>
+  <row rejects="$intervalOK$">
+    <panel>
+      <html>You didn't choose an interval of 60 minutes. Please choose an interval of 60 minutes.</html>
+    </panel>
+  </row>
+  <row depends="$intervalOK$">
+    <panel>
+      <title>Summary of all suspected accounts which connected from more countries</title>
+      <table>
+        <search>
+          <query>index=mailbox (process=mailbox OR process=audit) module=ZxAuth operation=authentication-service login=successful service=* | fields error, src_ip, auth_name | stats count by  src_ip auth_name  | iplocation lang=en src_ip | stats distinct_count(Country) as country by auth_name | where country&gt;1</query>
+          <earliest>$interval.earliest$</earliest>
+          <latest>$interval.latest$</latest>
+        </search>
+        <option name="drilldown">cell</option>
+        <option name="refresh.display">progressbar</option>
+        <drilldown>
+          <set token="mbox">$click.value$</set>
+          <unset token="details"></unset>
+        </drilldown>
+      </table>
+    </panel>
+  </row>
+  <row depends="$mbox$,$intervalOK$">
+    <panel depends="$view_country$">
+      <title>$mbox$ - Access by country</title>
+      <table>
+        <title>Click on Country for more details.</title>
+        <search>
+          <progress>
+            <unset token="country"></unset>
+          </progress>
+          <done>
+            <set token="country">$job.resultCount$</set>
+            <eval token="view_country">if('country'&gt;0,true(),null())</eval>
+          </done>
+          <query>index=mailbox (process=mailbox OR process=audit) module=ZxAuth operation=authentication-service login=successful service=* auth_name=$mbox|s$ | iplocation lang=en src_ip | stats count by  Country auth_name</query>
+          <earliest>$interval.earliest$</earliest>
+          <latest>$interval.latest$</latest>
+        </search>
+        <option name="count">20</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">cell</option>
+        <option name="percentagesRow">false</option>
+        <option name="rowNumbers">false</option>
+        <option name="totalsRow">false</option>
+        <option name="wrap">true</option>
+        <drilldown>
+          <set token="details">$click.value$</set>
+        </drilldown>
+      </table>
+    </panel>
+    <panel depends="$details$,$view_country$">
+      <title>Access by Country - more detail about access from $details$</title>
+      <table>
+        <title>Click to hide details.</title>
+        <search>
+          <query>index=mailbox (process=mailbox OR process=audit) module=ZxAuth operation=authentication-service login=successful service=* auth_name=$mbox|s$ | fields src_ip, auth_name, service | stats count by  src_ip auth_name service | iplocation lang=en src_ip | fields - lat - lon
+| where Country==$details|s$</query>
+          <earliest>$interval.earliest$</earliest>
+          <latest>$interval.latest$</latest>
+        </search>
+        <option name="drilldown">cell</option>
+        <drilldown>
+          <unset token="details"></unset>
+        </drilldown>
+      </table>
+    </panel>
+    <panel depends="$view_contacts$">
+      <title>$mbox$ - Adding Contacts</title>
+      <table>
+        <search>
+          <progress>
+            <unset token="contacts"></unset>
+          </progress>
+          <done>
+            <set token="contacts">$job.eventCount$</set>
+            <eval token="view_contacts">if('contacts'&gt;0,true(),null())</eval>
+          </done>
+          <query>index=mailbox (process=mailbox OR process=audit) auth_name=$mbox|s$ action="adding contact*" | stats count by src_ip</query>
+          <earliest>$interval.earliest$</earliest>
+          <latest>$interval.latest$</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+        <format type="color" field="count">
+          <colorPalette type="list">[#118832,#CBA700,#D41F1F]</colorPalette>
+          <scale type="threshold">100,299</scale>
+        </format>
+      </table>
+    </panel>
+  </row>
+  <row depends="$mbox$,$intervalOK$">
+    <panel depends="$view_sent$">
+      <title>Email sent</title>
+      <table>
+        <search>
+          <query>src_type=outbound process=amavis  action=Passed* src_user=$mbox|s$
+| chart sum(recipient_count) as "N. Recip." count(src_user) as "N. Msg" by src_user</query>
+          <earliest>$interval.earliest$</earliest>
+          <latest>$interval.latest$</latest>
+          <progress>
+            <unset token="mailsent"></unset>
+          </progress>
+          <done>
+            <set token="mailsent">$job.eventCount$</set>
+            <eval token="view_sent">if('job.resultCount'&gt;0,true(),null())</eval>
+          </done>
+        </search>
+        <option name="drilldown">none</option>
+        <format type="color" field="N. Recip.">
+          <colorPalette type="list">[#118832,#CBA700,#D41F1F]</colorPalette>
+          <scale type="threshold">50,200</scale>
+        </format>
+        <format type="color" field="N. Msg">
+          <colorPalette type="list">[#118832,#CBA700,#D41F1F]</colorPalette>
+          <scale type="threshold">20,100</scale>
+        </format>
+      </table>
+    </panel>
+    <panel depends="$view_prefs$">
+      <title>$mbox$ - Modifying Preferences</title>
+      <table>
+        <search>
+          <query>index=mailbox process=mailbox  auth_name=$mbox|s$ request=* Modify* | table _time src_ip user_agent request</query>
+          <earliest>$interval.earliest$</earliest>
+          <latest>$interval.latest$</latest>
+          <progress>
+            <unset token="suspect_prefs"></unset>
+          </progress>
+          <done>
+            <set token="suspect_prefs">$job.resultCount$</set>
+            <eval token="view_prefs">if('suspect_prefs'&gt;0,true(),null())</eval>
+          </done>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </table>
+    </panel>
+  </row>
+  <row depends="$mbox$,$intervalOK$">
+    <panel>
+      <html>
+      <h3>Final report for $mbox|s$</h3>
+    </html>
+    </panel>
+  </row>
+  <row depends="$mbox$,$intervalOK$">
+    <panel>
+      <title>Suspect by country?</title>
+      <viz type="status_indicator_app.status_indicator">
+        <search>
+          <query>| makeresults count=1 | eval icon=if($country$&gt;1, "check", "info-circle"), color=if($country$&gt;1, "red", "green"), value=if($country$&gt;1, "YES", "No")
+| fields value, icon, color</query>
+          <earliest>-24h@h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="status_indicator_app.status_indicator.colorBy">field_value</option>
+        <option name="status_indicator_app.status_indicator.fillTarget">text</option>
+        <option name="status_indicator_app.status_indicator.fixIcon">times-circle</option>
+        <option name="status_indicator_app.status_indicator.icon">field_value</option>
+        <option name="status_indicator_app.status_indicator.precision">0</option>
+        <option name="status_indicator_app.status_indicator.showOption">1</option>
+        <option name="status_indicator_app.status_indicator.staticColor">#555</option>
+        <option name="status_indicator_app.status_indicator.useColors">true</option>
+        <option name="status_indicator_app.status_indicator.useThousandSeparator">true</option>
+      </viz>
+    </panel>
+    <panel>
+      <title>Suspect by contacts?</title>
+      <viz type="status_indicator_app.status_indicator">
+        <search>
+          <query>| makeresults count=1 | eval icon=if($contacts$&gt;100, "check", "info-circle"), color=if($contacts$&gt;100, "red", "green"), value=if($contacts$&gt;100, "YES", "No")
+| fields value, icon, color</query>
+          <earliest>-24h@h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="status_indicator_app.status_indicator.colorBy">field_value</option>
+        <option name="status_indicator_app.status_indicator.fillTarget">text</option>
+        <option name="status_indicator_app.status_indicator.fixIcon">times-circle</option>
+        <option name="status_indicator_app.status_indicator.icon">field_value</option>
+        <option name="status_indicator_app.status_indicator.precision">0</option>
+        <option name="status_indicator_app.status_indicator.showOption">1</option>
+        <option name="status_indicator_app.status_indicator.staticColor">#555</option>
+        <option name="status_indicator_app.status_indicator.useColors">true</option>
+        <option name="status_indicator_app.status_indicator.useThousandSeparator">true</option>
+      </viz>
+    </panel>
+    <panel>
+      <title>Suspect by preferences?</title>
+      <viz type="status_indicator_app.status_indicator">
+        <search>
+          <query>| makeresults count=1 | eval icon=if($suspect_prefs$&gt;1, "check", "info-circle"), color=if($suspect_prefs$&gt;1, "red", "green"), value=if($suspect_prefs$&gt;1, "YES", "No")
+| fields value, icon, color</query>
+          <earliest>-24h@h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="status_indicator_app.status_indicator.colorBy">field_value</option>
+        <option name="status_indicator_app.status_indicator.fillTarget">text</option>
+        <option name="status_indicator_app.status_indicator.fixIcon">times-circle</option>
+        <option name="status_indicator_app.status_indicator.icon">field_value</option>
+        <option name="status_indicator_app.status_indicator.precision">0</option>
+        <option name="status_indicator_app.status_indicator.showOption">1</option>
+        <option name="status_indicator_app.status_indicator.staticColor">#555</option>
+        <option name="status_indicator_app.status_indicator.useColors">true</option>
+        <option name="status_indicator_app.status_indicator.useThousandSeparator">true</option>
+      </viz>
+    </panel>
+    <panel>
+      <title>Suspect by mail sent?</title>
+      <viz type="status_indicator_app.status_indicator">
+        <search>
+          <query>| makeresults count=1 | eval icon=if($mailsent$&gt;300, "check", "info-circle"), color=if($mailsent$&gt;300, "red", "green"), value=if($mailsent$&gt;300, "YES", "No")
+| fields value, icon, color</query>
+          <earliest>-24h@h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="status_indicator_app.status_indicator.colorBy">field_value</option>
+        <option name="status_indicator_app.status_indicator.fillTarget">text</option>
+        <option name="status_indicator_app.status_indicator.fixIcon">times-circle</option>
+        <option name="status_indicator_app.status_indicator.icon">field_value</option>
+        <option name="status_indicator_app.status_indicator.precision">0</option>
+        <option name="status_indicator_app.status_indicator.showOption">1</option>
+        <option name="status_indicator_app.status_indicator.staticColor">#555</option>
+        <option name="status_indicator_app.status_indicator.useColors">true</option>
+        <option name="status_indicator_app.status_indicator.useThousandSeparator">true</option>
+      </viz>
+    </panel>
+  </row>
+</form>
