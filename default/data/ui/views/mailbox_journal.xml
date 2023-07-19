@@ -3,7 +3,7 @@
     <unset token="overall"></unset>
   </init>
   <label>Mailbox operation center</label>
-  <description>Welcome on Operation on Mailboxes! [sorry, graphical interface with some debug info for Splunk Support help]. Please, refresh the browser when you change the Target.</description>
+  <description>Welcome on Operation on Mailboxes! Splunk 9.1 at least suggested, otherwise refresh the browser when you change the Target.</description>
   <fieldset submitButton="false">
     <input type="checkbox" token="help">
       <change>
@@ -173,9 +173,8 @@
   </row>
   <row rejects="$overall$" depends="$target$,$mbox$">
     <panel>
-      <title>$myfields$</title>
+      <title>$target_desc$ operations</title>
       <table>
-        <title>$target_desc$ Operation</title>
         <search>
           <query>| makeresults | eval mailbox_name="$mbox$" | lookup midlookup mailbox_name as mailbox_name OUTPUT mbox_server mailbox_id | map search="search index=mailbox mailbox_mid=$$mailbox_id$$ mbox_server=$$mbox_server$$ action=\"$op_type$*\" $target$_id=*"
             | eval n$target$=mvcount($target$_id), interface=case(like(thread_name,"qtp%"),"WEB",like(thread_name,"LmtpServer-%"),"LMTP",like(thread_name,"ImapServer-%"),"IMAP",true(),thread_name)
@@ -201,9 +200,9 @@
   </row>
   <row rejects="$overall$" depends="$target$,$mbox$,$show_nomid$">
     <panel>
-      <title>$myfields$</title>
+      <title>$target_desc$ operations</title>
       <table>
-        <title>$target_desc$ Operation *Special no mid op* - the auth_name could be wrong</title>
+        <title>*Special no mid op* - the auth_name could be wrong</title>
         <search>
           <query>index=mailbox NOT mailbox_mid=* authz_name="$mbox$" action="$op_type$*" $target$_id=*
             | eval n$target$=mvcount($target$_id), interface=case(like(thread_name,"qtp%"),"WEB",like(thread_name,"LmtpServer-%"),"LMTP",like(thread_name,"ImapServer-%"),"IMAP",true(),thread_name)
