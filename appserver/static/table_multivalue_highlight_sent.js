@@ -8,7 +8,7 @@ require([
     mvc.Components.get('highlight_sent').getVisualization(function(tableView) {
         tableView.on('rendered', function() {
              setTimeout(function(){
-                $('div#highlight_sent table td[data-cell-index="4"] div.multivalue-subcell') .each(function(){
+                $('div#highlight_sent table td[data-cell-index="5"] div.multivalue-subcell') .each(function(){
                   var strMultiValueTest=$(this).text();
                   if(strMultiValueTest=="sent"){
                       $(this).addClass("highlight-green");
