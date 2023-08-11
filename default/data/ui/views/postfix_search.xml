@@ -181,6 +181,24 @@
     </html>
     </panel>
   </row>
+  <row depends="$whatSearch$,$rej_show$">
+    <panel>
+      <title>Email Rejected</title>
+      <table>
+        <search>
+          <progress>
+            <eval token="rej_show">if('job.resultCount' &gt; 0, true(), null())</eval>
+          </progress>
+          <query>sourcetype=zimbra:postfix action=reject $whatSearch2$
+            | table _time src_host src_ip from recipient action detail</query>
+          <earliest>$interval.earliest$</earliest>
+          <latest>$interval.latest$</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </table>
+    </panel>
+  </row>
   <row depends="$whatSearch$">
     <panel depends="$client$" id="detailClientPanel">
       <table>
