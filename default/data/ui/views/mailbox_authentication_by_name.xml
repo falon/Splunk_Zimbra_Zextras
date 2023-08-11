@@ -123,9 +123,32 @@
       </html>
     </panel>
   </row>
+  <row depends="$name$,$service$,$credexp_show$">
+    <panel>
+      <title>Credential Expired</title>
+      <table>
+        <title>Such as expired tokens on mobile app. User could need to re-enter credentials on all services.</title>
+        <search>
+          <query>index=mailbox process=mailbox auth_name=$name|s$ "auth credentials have expired"
+| table _time src_ip auth_name user_agent</query>
+          <earliest>$interval.earliest$</earliest>
+          <latest>$interval.latest$</latest>
+          <progress>
+            <condition match="'job.resultCount' &gt; 0">
+              <set token="credexp_show">true</set>
+            </condition>
+            <condition>
+              <unset token="credexp_show"></unset>
+            </condition>
+          </progress>
+        </search>
+        <option name="drilldown">none</option>
+      </table>
+    </panel>
+  </row>
   <row>
     <panel depends="$by$">
-      <title>SucceAuthenticated user: $authname$ssful Logins  $by$=&lt;$byvalue$&gt; - only for external IPs</title>
+      <title>Authenticated user: $authname$ - Successful Logins  $by$=&lt;$byvalue$&gt; - only for external IPs</title>
       <map>
         <search base="base">
           <query>search $by$="$byvalue$" auth_name=$authname$ | stats count by src_ip auth_name user_agent service | iplocation lang=en src_ip | geostats globallimit=1000  sum(count) as count by service</query>
@@ -141,7 +164,7 @@
       </map>
     </panel>
     <panel depends="$failby$">
-      <title>Failed Logins  $failby$=&lt;Auth name: $authname$$byvalue$&gt;  - only for external IPs</title>
+      <title>Failed Logins  $failby$=&lt;Auth name: $authname$ $byvalue$&gt;  - only for external IPs</title>
       <map>
         <search base="base">
           <query>search $failby$="$byvalue$" auth_name=$authname$ | stats count by src_ip auth_name service error | iplocation lang=en src_ip | geostats globallimit=1000  sum(count) as count by service</query>
